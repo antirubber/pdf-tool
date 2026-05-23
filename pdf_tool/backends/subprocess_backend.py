@@ -24,6 +24,14 @@ class SubprocessBackend:
                 timeout=timeout,
                 check=False,
             )
+        except FileNotFoundError as e:
+            raise BackendError(
+                SubprocessFailure(
+                    binary=self.binary,
+                    exit_code=-1,
+                    stderr=f"{self.binary} not found — is it installed?",
+                )
+            ) from e
         except subprocess.TimeoutExpired as e:
             raise BackendError(
                 SubprocessFailure(

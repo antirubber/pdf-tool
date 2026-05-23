@@ -22,6 +22,10 @@ class _False(SubprocessBackend):
     binary = "false"
 
 
+class _Missing(SubprocessBackend):
+    binary = "no_such_binary_xyz_123"
+
+
 def test_run_captures_stdout_and_returncode():
     result = _Echo()._run(["hello"])
     assert isinstance(result, CommandResult)
@@ -42,6 +46,16 @@ def test_run_captures_stderr():
     sh = type("Sh", (SubprocessBackend,), {"binary": "sh"})()
     out = sh._run(["-c", "echo oops 1>&2; exit 0"])
     assert "oops" in out.stderr
+
+
+def test_run_raises_backend_error_on_missing_binary():
+    with pytest.raises(BackendError) as exc_info:
+        _Missing()._run([])
+    failure = exc_info.value.failure
+    assert isinstance(failure, SubprocessFailure)
+    assert failure.binary == "no_such_binary_xyz_123"
+    assert failure.exit_code == -1
+    assert "not found" in failure.stderr
 
 
 @pytest.mark.integration

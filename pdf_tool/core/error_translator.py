@@ -33,6 +33,11 @@ def translate(operation: str, failure: BackendFailure) -> FriendlyError:
     match failure:
         case PikepdfFailure(exception_name="PasswordError"):
             return FriendlyError(message="Wrong password.")
+        case SubprocessFailure(exit_code=-1, stderr=s) if "not found" in s:
+            return FriendlyError(
+                message=f"{failure.binary} is not installed.",
+                suggested_action=f"Install {failure.binary} to use this operation.",
+            )
     return FriendlyError(
         message=f"{operation} failed. Rerun with --debug for details."
     )
