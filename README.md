@@ -2,6 +2,8 @@
 
 Interactive wizard CLI for everyday PDF manipulation — encrypt, decrypt, split, merge, rotate, compress, inspect, OCR, watermark, edit metadata, repair, convert — aimed at terminal-curious users on macOS and Linux.
 
+![wizard menu](docs/screenshot.png)
+
 ## Install
 
 ```bash
