@@ -6,6 +6,7 @@ from pdf_tool.core.error_translator import BackendError, translate
 from pdf_tool.core.output_namer import derive_output, ensure_unique
 from pdf_tool.core.page_selection import All, resolve
 from pdf_tool.widgets.file_input import prompt_input_file
+from pdf_tool.widgets.output_path import prompt_output_path
 from pdf_tool.widgets.page_selection import prompt_page_selection
 
 _console = Console()
@@ -45,8 +46,11 @@ def run() -> None:
         selection = All()
     pages = resolve(selection, n_pages=n_pages)
 
-    output = ensure_unique(derive_output(input_path, "watermark"))
-    if not questionary.confirm(f"Will write to {output}. OK?", default=True).ask():
+    output = prompt_output_path(
+        ensure_unique(derive_output(input_path, "watermark")),
+        hint="e.g. draft.pdf",
+    )
+    if output is None:
         return
 
     try:

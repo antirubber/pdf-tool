@@ -7,6 +7,7 @@ from pdf_tool.core.output_namer import derive_output, ensure_unique
 from pdf_tool.core.page_selection import resolve
 from pdf_tool.core.range_parser import RangeParseError, parse_range
 from pdf_tool.widgets.file_input import prompt_input_file
+from pdf_tool.widgets.output_path import prompt_output_dir, prompt_output_path
 from pdf_tool.widgets.page_selection import prompt_page_selection
 
 _console = Console()
@@ -55,10 +56,11 @@ def run() -> None:
 
     try:
         if mode == "every_page":
-            out_dir = ensure_unique(derive_output(input_path, "split"))
-            if not questionary.confirm(
-                f"Will write {n_pages} files to {out_dir}. OK?", default=True
-            ).ask():
+            out_dir = prompt_output_dir(
+                ensure_unique(derive_output(input_path, "split")),
+                hint="e.g. pages/",
+            )
+            if out_dir is None:
                 return
             outputs = backend.split_every_page(input_path, out_dir)
             _console.print(f"[green]Wrote {len(outputs)} files to {out_dir}[/green]")
@@ -68,10 +70,11 @@ def run() -> None:
             ).ask()
             if raw is None:
                 return
-            out_dir = ensure_unique(derive_output(input_path, "split"))
-            if not questionary.confirm(
-                f"Will write to {out_dir}. OK?", default=True
-            ).ask():
+            out_dir = prompt_output_dir(
+                ensure_unique(derive_output(input_path, "split")),
+                hint="e.g. chunks/",
+            )
+            if out_dir is None:
                 return
             outputs = backend.split_every_n(input_path, out_dir, n=int(raw))
             _console.print(f"[green]Wrote {len(outputs)} files to {out_dir}[/green]")
@@ -83,10 +86,11 @@ def run() -> None:
             if raw is None:
                 return
             boundaries = parse_range(raw, n_pages=n_pages)
-            out_dir = ensure_unique(derive_output(input_path, "split"))
-            if not questionary.confirm(
-                f"Will write to {out_dir}. OK?", default=True
-            ).ask():
+            out_dir = prompt_output_dir(
+                ensure_unique(derive_output(input_path, "split")),
+                hint="e.g. sections/",
+            )
+            if out_dir is None:
                 return
             outputs = backend.split_at_boundaries(
                 input_path, out_dir, boundaries=boundaries
@@ -97,12 +101,13 @@ def run() -> None:
             if selection is None:
                 return
             pages = resolve(selection, n_pages=n_pages)
-            output = ensure_unique(
-                input_path.with_stem(f"{input_path.stem}-extracted")
+            output = prompt_output_path(
+                ensure_unique(
+                    input_path.with_stem(f"{input_path.stem}-extracted")
+                ),
+                hint="e.g. extracted.pdf",
             )
-            if not questionary.confirm(
-                f"Will write to {output}. OK?", default=True
-            ).ask():
+            if output is None:
                 return
             backend.extract_pages(input_path, output, pages=pages)
             _console.print(f"[green]Wrote {output}[/green]")

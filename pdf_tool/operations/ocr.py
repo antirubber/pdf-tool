@@ -5,6 +5,7 @@ from pdf_tool.backends.ocrmypdf_backend import OcrmypdfBackend, OcrOptions
 from pdf_tool.core.error_translator import BackendError, translate
 from pdf_tool.core.output_namer import derive_output, ensure_unique
 from pdf_tool.widgets.file_input import prompt_input_file
+from pdf_tool.widgets.output_path import prompt_output_path
 
 _console = Console()
 
@@ -36,8 +37,11 @@ def run() -> None:
             return
         force = force_input
 
-    output = ensure_unique(derive_output(input_path, "ocr"))
-    if not questionary.confirm(f"Will write to {output}. OK?", default=True).ask():
+    output = prompt_output_path(
+        ensure_unique(derive_output(input_path, "ocr")),
+        hint="e.g. searchable.pdf",
+    )
+    if output is None:
         return
 
     try:

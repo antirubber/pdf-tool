@@ -21,6 +21,7 @@ from pdf_tool.widgets.batch import (
     run_per_file,
 )
 from pdf_tool.widgets.file_input import prompt_input_file
+from pdf_tool.widgets.output_path import prompt_output_dir, prompt_output_path
 
 _console = Console()
 
@@ -41,8 +42,11 @@ _CONVERTIBLE_EXTS = _OFFICE_EXTS | _IMAGE_EXTS | {".pdf"}
 
 
 def _convert_office_to_pdf_one(input_path: Path) -> None:
-    output = ensure_unique(derive_output(input_path, "convert", target_format="pdf"))
-    if not questionary.confirm(f"Will write to {output}. OK?", default=True).ask():
+    output = prompt_output_path(
+        ensure_unique(derive_output(input_path, "convert", target_format="pdf")),
+        hint="e.g. report.pdf",
+    )
+    if output is None:
         return
     try:
         LibreOfficeBackend().convert(
@@ -89,30 +93,37 @@ def _convert_pdf(input_path: Path) -> None:
 
     try:
         if target in ("docx", "odt", "xlsx", "pptx"):
-            output = ensure_unique(
-                derive_output(input_path, "convert", target_format=target)
+            output = prompt_output_path(
+                ensure_unique(
+                    derive_output(input_path, "convert", target_format=target)
+                ),
+                hint=f"e.g. output.{target}",
             )
-            if not questionary.confirm(f"Will write to {output}. OK?", default=True).ask():
+            if output is None:
                 return
             LibreOfficeBackend().convert(
                 input_path, output, ConvertOptions(target_format=target)
             )
             _console.print(f"[green]Wrote {output}[/green]")
         elif target in ("png", "jpeg"):
-            output_dir = ensure_unique(
-                derive_output(input_path, "convert", target_format=target)
+            output_dir = prompt_output_dir(
+                ensure_unique(
+                    derive_output(input_path, "convert", target_format=target)
+                ),
+                hint="e.g. pages/",
             )
-            if not questionary.confirm(
-                f"Will write to {output_dir}/. OK?", default=True
-            ).ask():
+            if output_dir is None:
                 return
             PdftoppmBackend().pdf_to_images(
                 input_path, output_dir, PdfToImagesOptions(image_format=target)
             )
             _console.print(f"[green]Wrote images to {output_dir}[/green]")
         else:  # txt
-            output = ensure_unique(input_path.with_suffix(".txt"))
-            if not questionary.confirm(f"Will write to {output}. OK?", default=True).ask():
+            output = prompt_output_path(
+                ensure_unique(input_path.with_suffix(".txt")),
+                hint="e.g. content.txt",
+            )
+            if output is None:
                 return
             PdftotextBackend().pdf_to_text(input_path, output, PdfToTextOptions())
             _console.print(f"[green]Wrote {output}[/green]")
@@ -131,8 +142,11 @@ def _convert_images_to_pdf_one(first_image: Path) -> None:
             break
         paths.append(nxt)
 
-    output = ensure_unique(first_image.with_suffix(".pdf"))
-    if not questionary.confirm(f"Will write to {output}. OK?", default=True).ask():
+    output = prompt_output_path(
+        ensure_unique(first_image.with_suffix(".pdf")),
+        hint="e.g. scan.pdf",
+    )
+    if output is None:
         return
 
     try:
@@ -148,8 +162,11 @@ def _convert_images_to_pdf_batch(inputs: list[Path]) -> None:
         f"Will combine {len(inputs)} image(s) into one PDF. OK?", default=True
     ).ask():
         return
-    output = ensure_unique(inputs[0].with_suffix(".pdf"))
-    if not questionary.confirm(f"Will write to {output}. OK?", default=True).ask():
+    output = prompt_output_path(
+        ensure_unique(inputs[0].with_suffix(".pdf")),
+        hint="e.g. combined.pdf",
+    )
+    if output is None:
         return
     try:
         Img2pdfBackend().images_to_pdf(inputs, output)

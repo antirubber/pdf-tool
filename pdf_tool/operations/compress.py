@@ -14,6 +14,7 @@ from pdf_tool.widgets.batch import (
     run_per_file,
 )
 from pdf_tool.widgets.file_input import prompt_input_file
+from pdf_tool.widgets.output_path import prompt_output_path
 
 _console = Console()
 
@@ -51,8 +52,11 @@ def _run_one() -> None:
     if preset is None:
         return
 
-    output = ensure_unique(derive_output(input_path, "compress"))
-    if not questionary.confirm(f"Will write to {output}. OK?", default=True).ask():
+    output = prompt_output_path(
+        ensure_unique(derive_output(input_path, "compress")),
+        hint="e.g. small.pdf",
+    )
+    if output is None:
         return
 
     try:

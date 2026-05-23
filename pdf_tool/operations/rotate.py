@@ -6,6 +6,7 @@ from pdf_tool.core.error_translator import BackendError, translate
 from pdf_tool.core.output_namer import derive_output, ensure_unique
 from pdf_tool.core.page_selection import resolve
 from pdf_tool.widgets.file_input import prompt_input_file
+from pdf_tool.widgets.output_path import prompt_output_path
 from pdf_tool.widgets.page_selection import prompt_page_selection
 
 _console = Console()
@@ -38,9 +39,11 @@ def run() -> None:
     if angle_choice is None:
         return
 
-    output = ensure_unique(derive_output(input_path, "rotate"))
-    proceed = questionary.confirm(f"Will write to {output}. OK?", default=True).ask()
-    if not proceed:
+    output = prompt_output_path(
+        ensure_unique(derive_output(input_path, "rotate")),
+        hint="e.g. rotated.pdf",
+    )
+    if output is None:
         return
 
     try:
