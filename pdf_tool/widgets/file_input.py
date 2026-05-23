@@ -22,6 +22,26 @@ def _validate_existing_file(raw: str) -> bool | str:
     return True
 
 
+def _validate_existing_directory(raw: str) -> bool | str:
+    if not raw or not raw.strip():
+        return "Path is required."
+    path = normalize_path(raw)
+    if not path.exists():
+        return f"Directory not found: {path}"
+    if not path.is_dir():
+        return f"Not a directory: {path}"
+    return True
+
+
+def prompt_input_directory(message: str = "Input directory") -> Path | None:
+    raw = questionary.path(
+        message, validate=_validate_existing_directory, only_directories=True
+    ).ask()
+    if raw is None:
+        return None
+    return normalize_path(raw).resolve()
+
+
 def prompt_input_file(message: str = "Input PDF") -> Path | None:
     raw = questionary.path(message, validate=_validate_existing_file).ask()
     if raw is None:

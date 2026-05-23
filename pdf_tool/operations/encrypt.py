@@ -7,6 +7,7 @@ from pdf_tool.backends.pikepdf_backend import EncryptOptions, PikepdfBackend
 from pdf_tool.core.error_translator import BackendError, translate
 from pdf_tool.core.output_namer import derive_output, ensure_unique
 from pdf_tool.widgets.batch import (
+    collect_directory_files_interactive,
     collect_input_files,
     print_summary,
     prompt_one_or_many,
@@ -73,9 +74,34 @@ def _run_batch() -> None:
     print_summary(outcomes)
 
 
+def _run_directory() -> None:
+    files = collect_directory_files_interactive({".pdf"})
+    if not files:
+        return
+    password = _prompt_password()
+    if password is None:
+        return
+    if not questionary.confirm(
+        f"Will encrypt {len(files)} files (each → <name>-encrypted.pdf). OK?",
+        default=True,
+    ).ask():
+        return
+
+    backend = PikepdfBackend()
+
+    def process(path: Path) -> Path:
+        output = ensure_unique(derive_output(path, "encrypt"))
+        return backend.encrypt(path, output, EncryptOptions(password=password))
+
+    outcomes = run_per_file("encrypt", files, process)
+    print_summary(outcomes)
+
+
 def run() -> None:
     mode = prompt_one_or_many()
     if mode == "one":
         _run_one()
     elif mode == "many":
         _run_batch()
+    elif mode == "directory":
+        _run_directory()

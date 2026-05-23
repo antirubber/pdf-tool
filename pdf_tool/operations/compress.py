@@ -7,6 +7,7 @@ from pdf_tool.backends.ghostscript_backend import CompressOptions, GhostscriptBa
 from pdf_tool.core.error_translator import BackendError, translate
 from pdf_tool.core.output_namer import derive_output, ensure_unique
 from pdf_tool.widgets.batch import (
+    collect_directory_files_interactive,
     collect_input_files,
     print_summary,
     prompt_one_or_many,
@@ -91,9 +92,33 @@ def _run_batch() -> None:
     print_summary(outcomes)
 
 
+def _run_directory() -> None:
+    files = collect_directory_files_interactive({".pdf"})
+    if not files:
+        return
+    preset = _prompt_preset()
+    if preset is None:
+        return
+    if not questionary.confirm(
+        f"Will compress {len(files)} files using /{preset}. OK?", default=True
+    ).ask():
+        return
+
+    backend = GhostscriptBackend()
+
+    def process(path: Path) -> Path:
+        output = ensure_unique(derive_output(path, "compress"))
+        return backend.compress(path, output, CompressOptions(preset=preset))
+
+    outcomes = run_per_file("compress", files, process)
+    print_summary(outcomes)
+
+
 def run() -> None:
     mode = prompt_one_or_many()
     if mode == "one":
         _run_one()
     elif mode == "many":
         _run_batch()
+    elif mode == "directory":
+        _run_directory()

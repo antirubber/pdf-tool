@@ -7,7 +7,21 @@ from rich.console import Console
 from rich.table import Table
 
 from pdf_tool.core.error_translator import BackendError, translate
-from pdf_tool.widgets.file_input import prompt_input_file
+from pdf_tool.widgets.file_input import prompt_input_directory, prompt_input_file
+
+
+def collect_directory_files(
+    directory: Path,
+    extensions: set[str],
+    *,
+    recursive: bool = False,
+) -> list[Path]:
+    pattern = "**/*" if recursive else "*"
+    return sorted(
+        p
+        for p in directory.glob(pattern)
+        if p.is_file() and p.suffix.lower() in extensions
+    )
 
 _console = Console()
 
@@ -20,14 +34,40 @@ class BatchOutcome:
 
 
 def prompt_one_or_many() -> str | None:
-    """Returns 'one', 'many', or None on cancel."""
+    """Returns 'one', 'many', 'directory', or None on cancel."""
     return questionary.select(
         "One file or many?",
         choices=[
             questionary.Choice("Just one", value="one"),
             questionary.Choice("Multiple (Batch mode)", value="many"),
+            questionary.Choice("All files in a directory", value="directory"),
         ],
     ).ask()
+
+
+def collect_directory_files_interactive(
+    extensions: set[str],
+) -> list[Path]:
+    directory = prompt_input_directory("Directory containing files")
+    if directory is None:
+        return []
+    recursive = questionary.confirm(
+        "Include subdirectories?", default=False
+    ).ask()
+    if recursive is None:
+        return []
+    files = collect_directory_files(directory, extensions, recursive=recursive)
+    if not files:
+        _console.print(f"[yellow]No matching files found in {directory}[/yellow]")
+        return []
+    preview = ", ".join(f.name for f in files[:5])
+    suffix = f" and {len(files) - 5} more" if len(files) > 5 else ""
+    if not questionary.confirm(
+        f"Found {len(files)} file(s): {preview}{suffix}. Proceed?",
+        default=True,
+    ).ask():
+        return []
+    return files
 
 
 def collect_input_files(first_prompt: str = "Input PDF") -> list[Path]:
