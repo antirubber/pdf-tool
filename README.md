@@ -5,13 +5,13 @@ Interactive wizard CLI for everyday PDF manipulation — encrypt, decrypt, split
 ## Install
 
 ```bash
-pipx install pdf-tool
+brew install ghostscript poppler img2pdf && pipx install git+https://github.com/antirubber/pdf-tool.git
 ```
 
 Or with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv tool install .
+brew install ghostscript poppler img2pdf && uv tool install git+https://github.com/antirubber/pdf-tool.git
 ```
 
 ## Usage
