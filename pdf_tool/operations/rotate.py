@@ -1,0 +1,53 @@
+import questionary
+from rich.console import Console
+
+from pdf_tool.backends.pikepdf_backend import PikepdfBackend
+from pdf_tool.core.error_translator import BackendError, translate
+from pdf_tool.core.output_namer import derive_output, ensure_unique
+from pdf_tool.core.page_selection import resolve
+from pdf_tool.widgets.file_input import prompt_input_file
+from pdf_tool.widgets.page_selection import prompt_page_selection
+
+_console = Console()
+
+
+def run() -> None:
+    input_path = prompt_input_file("Input PDF to rotate")
+    if input_path is None:
+        return
+
+    backend = PikepdfBackend()
+    info = backend.inspect(input_path)
+    if info.n_pages is None:
+        _console.print("[red]Cannot rotate an encrypted PDF. Decrypt it first.[/red]")
+        return
+
+    selection = prompt_page_selection(info.n_pages)
+    if selection is None:
+        return
+    pages = resolve(selection, n_pages=info.n_pages)
+
+    angle_choice = questionary.select(
+        "Rotation?",
+        choices=[
+            questionary.Choice("90° clockwise (default)", value=90),
+            questionary.Choice("90° counter-clockwise", value=-90),
+            questionary.Choice("180°", value=180),
+        ],
+    ).ask()
+    if angle_choice is None:
+        return
+
+    output = ensure_unique(derive_output(input_path, "rotate"))
+    proceed = questionary.confirm(f"Will write to {output}. OK?", default=True).ask()
+    if not proceed:
+        return
+
+    try:
+        backend.rotate(input_path, output, pages=pages, degrees=int(angle_choice))
+    except BackendError as e:
+        friendly = translate("rotate", e.failure)
+        _console.print(f"[red]{friendly.message}[/red]")
+        return
+
+    _console.print(f"[green]Wrote {output}[/green]")
