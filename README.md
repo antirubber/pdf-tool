@@ -47,6 +47,7 @@ Encrypt, decrypt, split, merge, rotate, inspect, watermark, metadata, and repair
 uv sync --dev           # create venv, install runtime + dev deps
 uv run pytest           # run tests
 uv run pdf-tool         # run from source
+make reinstall          # rebuild + reinstall the tool (clears uv cache)
 ```
 
 ## License
