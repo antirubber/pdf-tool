@@ -58,6 +58,14 @@ def test_menu_groups_appear_in_canonical_order():
     ]
 
 
+def test_every_separator_starts_with_newline_for_consistent_indent():
+    items = build_menu(_entries(), _all_available())
+    seps = [i for i in items if isinstance(i, questionary.Separator)]
+    assert seps, "expected at least one separator"
+    for sep in seps:
+        assert sep.title.startswith("\n"), f"separator missing leading \\n: {sep.title!r}"
+
+
 def test_empty_groups_are_omitted():
     entries = tuple(e for e in _entries() if e.group is not OperationGroup.INSPECT)
     items = build_menu(entries, _all_available())

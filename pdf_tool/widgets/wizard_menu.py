@@ -77,12 +77,11 @@ def build_menu(
     availability: BackendAvailability,
 ) -> list[questionary.Choice | questionary.Separator]:
     items: list[questionary.Choice | questionary.Separator] = []
-    for i, group in enumerate(GROUP_ORDER):
+    for group in GROUP_ORDER:
         members = [e for e in operations if e.group is group]
         if not members:
             continue
-        prefix = "" if i == 0 else "\n"
-        items.append(questionary.Separator(f"{prefix}  {group.value}"))
+        items.append(questionary.Separator(f"\n  {group.value}"))
         for entry in members:
             items.append(_choice_for(entry, availability))
     return items
