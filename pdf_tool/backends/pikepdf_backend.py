@@ -9,6 +9,7 @@ from pdf_tool.core.error_translator import BackendError, PikepdfFailure
 @dataclass(frozen=True)
 class EncryptOptions:
     password: str
+    owner_password: str | None = None
 
 
 @dataclass(frozen=True)
@@ -53,7 +54,8 @@ class PikepdfBackend:
             pdf.save(
                 output_path,
                 encryption=pikepdf.Encryption(
-                    owner=options.password, user=options.password
+                    owner=options.owner_password or options.password,
+                    user=options.password,
                 ),
             )
         return output_path

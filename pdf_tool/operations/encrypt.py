@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from pathlib import Path
 
 import questionary
@@ -19,11 +20,11 @@ from pdf_tool.widgets.output_path import prompt_output_path
 _console = Console()
 
 
-def _prompt_password() -> str | None:
-    password = questionary.password("Password").ask()
+def _prompt_one_password(label: str) -> str | None:
+    password = questionary.password(label).ask()
     if password is None:
         return None
-    confirm = questionary.password("Confirm password").ask()
+    confirm = questionary.password(f"Confirm {label.lower()}").ask()
     if confirm is None:
         return None
     if password != confirm:
@@ -32,12 +33,50 @@ def _prompt_password() -> str | None:
     return password
 
 
+def _prompt_encrypt_options() -> EncryptOptions | None:
+    return collect_encrypt_options(
+        ask_same=questionary.confirm(
+            "Use the same password for opening and for owner permissions?",
+            default=True,
+        ).ask,
+        ask_password=_prompt_one_password,
+    )
+
+
+def collect_encrypt_options(
+    *,
+    ask_same: Callable[[], bool | None],
+    ask_password: Callable[[str], str | None],
+) -> EncryptOptions | None:
+    """Branch the password prompts on whether owner and user share a password.
+
+    ``ask_same`` and ``ask_password`` are injected so the branching logic can be
+    exercised without driving the interactive prompts. Any ``None`` answer means
+    the user cancelled and aborts the whole flow.
+    """
+    same = ask_same()
+    if same is None:
+        return None
+    if same:
+        password = ask_password("Password")
+        if password is None:
+            return None
+        return EncryptOptions(password=password)
+    user_pw = ask_password("User password (required to open the document)")
+    if user_pw is None:
+        return None
+    owner_pw = ask_password("Owner password (full permissions)")
+    if owner_pw is None:
+        return None
+    return EncryptOptions(password=user_pw, owner_password=owner_pw)
+
+
 def _run_one() -> None:
     input_path = prompt_input_file("Input PDF to encrypt")
     if input_path is None:
         return
-    password = _prompt_password()
-    if password is None:
+    options = _prompt_encrypt_options()
+    if options is None:
         return
 
     output = prompt_output_path(
@@ -48,7 +87,7 @@ def _run_one() -> None:
         return
 
     try:
-        PikepdfBackend().encrypt(input_path, output, EncryptOptions(password=password))
+        PikepdfBackend().encrypt(input_path, output, options)
     except BackendError as e:
         _console.print(f"[red]{translate('encrypt', e.failure).message}[/red]")
         return
@@ -59,8 +98,8 @@ def _run_batch() -> None:
     inputs = collect_input_files("First PDF to encrypt")
     if not inputs:
         return
-    password = _prompt_password()
-    if password is None:
+    options = _prompt_encrypt_options()
+    if options is None:
         return
     if not questionary.confirm(
         f"Will encrypt {len(inputs)} files (each → <name>-encrypted.pdf). OK?",
@@ -72,7 +111,7 @@ def _run_batch() -> None:
 
     def process(path: Path) -> Path:
         output = ensure_unique(derive_output(path, "encrypt"))
-        return backend.encrypt(path, output, EncryptOptions(password=password))
+        return backend.encrypt(path, output, options)
 
     outcomes = run_per_file("encrypt", inputs, process)
     print_summary(outcomes)
@@ -82,8 +121,8 @@ def _run_directory() -> None:
     files = collect_directory_files_interactive({".pdf"})
     if not files:
         return
-    password = _prompt_password()
-    if password is None:
+    options = _prompt_encrypt_options()
+    if options is None:
         return
     if not questionary.confirm(
         f"Will encrypt {len(files)} files (each → <name>-encrypted.pdf). OK?",
@@ -95,7 +134,7 @@ def _run_directory() -> None:
 
     def process(path: Path) -> Path:
         output = ensure_unique(derive_output(path, "encrypt"))
-        return backend.encrypt(path, output, EncryptOptions(password=password))
+        return backend.encrypt(path, output, options)
 
     outcomes = run_per_file("encrypt", files, process)
     print_summary(outcomes)

@@ -25,6 +25,24 @@ def test_encrypt_produces_password_protected_pdf(sample_pdf, tmp_path):
         assert len(pdf.pages) == 3
 
 
+def test_encrypt_with_distinct_owner_and_user_passwords(sample_pdf, tmp_path):
+    out = tmp_path / "encrypted.pdf"
+    PikepdfBackend().encrypt(
+        sample_pdf,
+        out,
+        EncryptOptions(password="user-pw", owner_password="owner-pw"),
+    )
+
+    # Both the user and owner passwords open the document...
+    with pikepdf.open(out, password="user-pw") as pdf:
+        assert len(pdf.pages) == 3
+    with pikepdf.open(out, password="owner-pw") as pdf:
+        assert len(pdf.pages) == 3
+    # ...but an unrelated password does not.
+    with pytest.raises(pikepdf.PasswordError):
+        pikepdf.open(out, password="wrong")
+
+
 def test_decrypt_removes_password(sample_pdf, tmp_path):
     backend = PikepdfBackend()
     encrypted = backend.encrypt(
