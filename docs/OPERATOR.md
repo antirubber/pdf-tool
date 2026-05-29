@@ -93,6 +93,7 @@ The startup probe also drives the wizard menu: Operations whose required Backend
 ```
 pdf-tool/
 ├── CONTEXT.md                                       glossary — read first
+├── install.sh                                       POSIX-sh one-liner installer (detect OS/pkg-mgr, --dry-run plan)
 ├── pyproject.toml                                   package + deps + pytest config
 ├── pdf_tool/
 │   ├── __init__.py                                  __version__
@@ -126,6 +127,7 @@ pdf-tool/
 │   ├── core/                                        unit tests, mirroring pdf_tool/core/
 │   ├── backends/                                    backend tests (pikepdf + subprocess + ghostscript + libreoffice)
 │   ├── widgets/                                     normalize_path tests
+│   ├── install/                                     install.sh tests (drive `sh install.sh --dry-run` against a fake PATH)
 │   └── fixtures/                                    (empty — fixtures are built in-process by conftest)
 └── docs/
     ├── PRD.md                                       full spec

@@ -7,14 +7,35 @@ Interactive wizard CLI for everyday PDF manipulation — encrypt, decrypt, split
 ## Install
 
 ```bash
-brew install ghostscript poppler img2pdf && pipx install git+https://github.com/antirubber/pdf-tool.git
+curl -fsSL https://raw.githubusercontent.com/antirubber/pdf-tool/master/install.sh | sh
 ```
 
-Or with [uv](https://docs.astral.sh/uv/):
+The installer figures out the rest: it detects your OS and package manager
+(Homebrew, apt, dnf, pacman), installs the core system dependencies
+(`ghostscript`, `poppler`, `img2pdf`) only if they're missing, then installs
+`pdf-tool` itself with `uv` (preferring `pipx` if present, bootstrapping `uv`
+if neither is). It never runs as root: anything that needs `sudo` is printed
+for you to run yourself rather than executed silently.
+
+Preview exactly what it would do without changing anything:
 
 ```bash
-brew install ghostscript poppler img2pdf && uv tool install git+https://github.com/antirubber/pdf-tool.git
+curl -fsSL https://raw.githubusercontent.com/antirubber/pdf-tool/master/install.sh | sh -s -- --dry-run
 ```
+
+<details>
+<summary>Prefer to install by hand?</summary>
+
+```bash
+# macOS
+brew install ghostscript poppler img2pdf && uv tool install git+https://github.com/antirubber/pdf-tool.git
+
+# Debian/Ubuntu
+sudo apt-get install -y ghostscript poppler-utils img2pdf && uv tool install git+https://github.com/antirubber/pdf-tool.git
+```
+
+`pipx install git+…` works anywhere `uv tool install` does.
+</details>
 
 ## Usage
 
