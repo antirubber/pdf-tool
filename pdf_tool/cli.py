@@ -2,9 +2,9 @@ from typing import Annotated, Optional
 
 import typer
 
-from pdf_tool import __version__, wizard
+from pdf_tool import __version__, updater, wizard
 
-app = typer.Typer(add_completion=False)
+app = typer.Typer(add_completion=False, invoke_without_command=True)
 
 
 def _version_callback(value: bool) -> None:
@@ -13,8 +13,9 @@ def _version_callback(value: bool) -> None:
         raise typer.Exit()
 
 
-@app.command()
+@app.callback()
 def main(
+    ctx: typer.Context,
     version: Annotated[
         Optional[bool],
         typer.Option(
@@ -31,4 +32,11 @@ def main(
     ] = False,
 ) -> None:
     """Interactive wizard for everyday PDF tasks."""
-    wizard.run(debug=debug)
+    if ctx.invoked_subcommand is None:
+        wizard.run(debug=debug)
+
+
+@app.command()
+def update() -> None:
+    """Update pdf-tool to the latest release."""
+    raise typer.Exit(updater.run())

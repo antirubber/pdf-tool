@@ -53,12 +53,18 @@ def run_install(tmp_path):
     home.mkdir()
 
     def _run(
-        *, os_name: str = "Darwin", uid: int = 501, present=(), dry_run: bool = True
+        *,
+        os_name: str = "Darwin",
+        uid: int = 501,
+        present=(),
+        dry_run: bool = True,
+        stub_bodies=None,
     ) -> Result:
+        bodies = stub_bodies or {}
         _make_stub(bindir, "uname", f"echo {os_name}")
         _make_stub(bindir, "id", f"echo {uid}")
         for binary in present:
-            _make_stub(bindir, binary)
+            _make_stub(bindir, binary, bodies.get(binary, "exit 0"))
         env = {"PATH": str(bindir), "HOME": str(home)}
         args = [REAL_SH, str(SCRIPT)]
         if dry_run:

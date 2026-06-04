@@ -1,4 +1,4 @@
-.PHONY: reinstall test lint
+.PHONY: reinstall test lint release
 
 reinstall:
 	uv cache clean pdf-tool
@@ -9,3 +9,7 @@ test:
 
 lint:
 	ruff check pdf_tool tests
+
+release:
+	@test -n "$(VERSION)" || { echo "usage: make release VERSION=X.Y.Z"; exit 1; }
+	./scripts/release.sh $(VERSION)

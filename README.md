@@ -14,8 +14,10 @@ The installer figures out the rest: it detects your OS and package manager
 (Homebrew, apt, dnf, pacman), installs the core system dependencies
 (`ghostscript`, `poppler`, `img2pdf`) only if they're missing, then installs
 `pdf-tool` itself with `uv` (preferring `pipx` if present, bootstrapping `uv`
-if neither is). It never runs as root: anything that needs `sudo` is printed
-for you to run yourself rather than executed silently.
+if neither is). It installs the latest published release (falling back to the
+`master` branch before the first release is cut), and does nothing if you're
+already up to date. It never runs as root: anything that needs `sudo` is
+printed for you to run yourself rather than executed silently.
 
 Preview exactly what it would do without changing anything:
 
@@ -41,6 +43,7 @@ sudo apt-get install -y ghostscript poppler-utils img2pdf && uv tool install git
 
 ```bash
 pdf-tool                # launch the wizard
+pdf-tool update         # update to the latest release
 pdf-tool --version      # show version
 pdf-tool --debug        # show raw backend output and tracebacks
 ```

@@ -2,6 +2,7 @@
 # pdf-tool installer.
 
 REPO="git+https://github.com/antirubber/pdf-tool.git"
+OWNER_REPO="antirubber/pdf-tool"
 
 DRY_RUN=0
 [ "$1" = "--dry-run" ] && DRY_RUN=1
@@ -113,16 +114,54 @@ if [ -n "$MISSING" ]; then
     fi
 fi
 
-# --- install the tool ------------------------------------------------------
-if command -v uv >/dev/null 2>&1; then
-    plan RUN "uv tool install $REPO"
-elif command -v pipx >/dev/null 2>&1; then
-    plan RUN "pipx install $REPO"
+# --- resolve which version to install --------------------------------------
+# Latest published GitHub Release, or empty (→ master HEAD) when none exists
+# yet or the API is unreachable. Pure-builtin JSON scrape so the script needs
+# nothing on PATH but a shell and curl.
+resolve_ref() {
+    command -v curl >/dev/null 2>&1 || return 0
+    body="$(curl -fsSL "https://api.github.com/repos/$OWNER_REPO/releases/latest" 2>/dev/null)" || return 0
+    case "$body" in
+        *'"tag_name"'*) ;;
+        *) return 0 ;;
+    esac
+    ref="${body#*\"tag_name\"}"   # drop up to the tag_name key
+    ref="${ref#*:}"              # drop up to the colon
+    ref="${ref#*\"}"            # drop up to the opening quote of the value
+    ref="${ref%%\"*}"          # keep up to the closing quote
+    printf '%s\n' "$ref"
+}
+
+REF="$(resolve_ref)"
+if [ -n "$REF" ]; then
+    TARGET="$REPO@$REF"
 else
-    plan RUN "curl -LsSf https://astral.sh/uv/install.sh | sh"
-    # The uv installer drops the binary in ~/.local/bin, not yet on PATH.
-    plan RUN 'export PATH="$HOME/.local/bin:$PATH"'
-    plan RUN "uv tool install $REPO"
+    TARGET="$REPO"
+fi
+
+# Already on the target release? Nothing to do.
+SKIP_INSTALL=0
+if [ -n "$REF" ] && command -v pdf-tool >/dev/null 2>&1; then
+    CURRENT="$(pdf-tool --version 2>/dev/null)"
+    CURRENT="${CURRENT##* }"   # last field: "pdf-tool 0.1.0" -> "0.1.0"
+    if [ "$CURRENT" = "${REF#v}" ]; then
+        plan SKIP "pdf-tool $REF"
+        SKIP_INSTALL=1
+    fi
+fi
+
+# --- install the tool ------------------------------------------------------
+if [ "$SKIP_INSTALL" -eq 0 ]; then
+    if command -v uv >/dev/null 2>&1; then
+        plan RUN "uv tool install --force $TARGET"
+    elif command -v pipx >/dev/null 2>&1; then
+        plan RUN "pipx install --force $TARGET"
+    else
+        plan RUN "curl -LsSf https://astral.sh/uv/install.sh | sh"
+        # The uv installer drops the binary in ~/.local/bin, not yet on PATH.
+        plan RUN 'export PATH="$HOME/.local/bin:$PATH"'
+        plan RUN "uv tool install --force $TARGET"
+    fi
 fi
 
 if [ "$DRY_RUN" -eq 0 ]; then
