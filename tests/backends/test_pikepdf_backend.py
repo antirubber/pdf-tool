@@ -190,6 +190,34 @@ def test_strip_metadata_clears_existing_fields(sample_pdf, tmp_path):
     assert "Title" not in info.metadata
 
 
+def test_set_metadata_clears_a_blanked_field_and_keeps_others(sample_pdf, tmp_path):
+    backend = PikepdfBackend()
+    tagged = backend.set_metadata(
+        sample_pdf, tmp_path / "t.pdf", fields={"Title": "Secret", "Author": "Me"}
+    )
+    cleared = backend.set_metadata(tagged, tmp_path / "c.pdf", fields={"Title": ""})
+    info = backend.inspect(cleared)
+    assert "Title" not in info.metadata
+    assert info.metadata.get("Author") == "Me"
+
+
+def test_strip_removes_xmp_packet_and_original_document_id(tmp_path):
+    src = tmp_path / "src.pdf"
+    p = pikepdf.new()
+    p.add_blank_page(page_size=(72, 72))
+    with p.open_metadata() as m:
+        m["dc:title"] = "Secret Title"
+    p.save(src)
+    with pikepdf.open(src) as pdf:
+        original_id = bytes(pdf.trailer["/ID"][0])
+        assert "/Metadata" in pdf.Root
+
+    out = PikepdfBackend().strip_metadata(src, tmp_path / "out.pdf")
+    with pikepdf.open(out) as pdf:
+        assert "/Metadata" not in pdf.Root
+        assert bytes(pdf.trailer["/ID"][0]) != original_id
+
+
 def test_try_repair_preserves_page_count(sample_pdf, tmp_path):
     out = tmp_path / "repaired.pdf"
     result = PikepdfBackend().try_repair(sample_pdf, out)

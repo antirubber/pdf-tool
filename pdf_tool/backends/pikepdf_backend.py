@@ -253,7 +253,11 @@ class PikepdfBackend:
         with pikepdf.open(input_path) as pdf:
             for name, value in fields.items():
                 key = name if name.startswith("/") else f"/{name}"
-                pdf.docinfo[key] = value
+                if value == "":
+                    if key in pdf.docinfo:
+                        del pdf.docinfo[key]
+                else:
+                    pdf.docinfo[key] = value
             pdf.save(output_path)
         return output_path
 
@@ -262,10 +266,16 @@ class PikepdfBackend:
         with pikepdf.open(input_path) as pdf:
             for key in list(pdf.docinfo.keys()):
                 del pdf.docinfo[key]
-            with pdf.open_metadata() as xmp:
-                for key in list(xmp.keys()):
-                    del xmp[key]
-            pdf.save(output_path)
+            if "/Info" in pdf.trailer:
+                del pdf.trailer["/Info"]
+            if "/ID" in pdf.trailer:
+                del pdf.trailer["/ID"]
+            if "/Metadata" in pdf.Root:
+                del pdf.Root["/Metadata"]
+            # qpdf reuses the cached original /ID across a plain save even if
+            # the trailer key is removed; deleting it AND requesting a
+            # deterministic (content-derived) id drops the original fingerprint.
+            pdf.save(output_path, deterministic_id=True)
         return output_path
 
     @_translates

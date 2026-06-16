@@ -24,9 +24,25 @@ def _view(backend: PikepdfBackend, input_path) -> None:
     _console.print(table)
 
 
+def _resolve_field_edits(
+    current: dict[str, str], answers: dict[str, str]
+) -> dict[str, str]:
+    """Fields the user actually changed.
+
+    An empty string means "clear this field"; a field left at its current
+    value is omitted so it stays unchanged. This is what lets a user delete a
+    sensitive Title/Author rather than silently keeping it.
+    """
+    return {
+        name: value
+        for name, value in answers.items()
+        if value != current.get(name, "")
+    }
+
+
 def _edit(backend: PikepdfBackend, input_path) -> None:
     info = backend.inspect(input_path)
-    fields: dict[str, str] = {}
+    answers: dict[str, str] = {}
     for name in _EDITABLE_FIELDS:
         current = info.metadata.get(name, "")
         new_value = questionary.text(
@@ -35,8 +51,8 @@ def _edit(backend: PikepdfBackend, input_path) -> None:
         ).ask()
         if new_value is None:
             return
-        if new_value:
-            fields[name] = new_value
+        answers[name] = new_value
+    fields = _resolve_field_edits(info.metadata, answers)
 
     output = prompt_output_path(
         ensure_unique(input_path.with_stem(f"{input_path.stem}-tagged")),
