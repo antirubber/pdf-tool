@@ -18,16 +18,17 @@ class GhostscriptBackend(SubprocessBackend):
     def compress(
         self, input_path: Path, output_path: Path, options: CompressOptions
     ) -> Path:
-        self._check(
-            [
-                "-dBATCH",
-                "-dNOPAUSE",
-                "-q",
-                "-sDEVICE=pdfwrite",
-                f"-dPDFSETTINGS=/{options.preset}",
-                "-o",
-                str(output_path),
-                str(input_path),
-            ]
-        )
+        with self._atomic_path(output_path) as tmp:
+            self._check(
+                [
+                    "-dBATCH",
+                    "-dNOPAUSE",
+                    "-q",
+                    "-sDEVICE=pdfwrite",
+                    f"-dPDFSETTINGS=/{options.preset}",
+                    "-o",
+                    str(tmp),
+                    str(input_path),
+                ]
+            )
         return output_path

@@ -48,6 +48,56 @@ def test_run_captures_stderr():
     assert "oops" in out.stderr
 
 
+class _ShWriter(SubprocessBackend):
+    binary = "sh"
+
+    def write_file(self, out, *, fail: bool):
+        with self._atomic_path(out) as tmp:
+            script = f"printf %s hello > '{tmp}'"
+            if fail:
+                script += "; exit 3"
+            self._check(["-c", script])
+        return out
+
+    def write_dir(self, out_dir, *, fail: bool):
+        with self._atomic_dir(out_dir) as staging:
+            script = f"printf %s x > '{staging}/page-1.txt'"
+            if fail:
+                script += "; exit 3"
+            self._check(["-c", script])
+        return out_dir
+
+
+def test_atomic_path_success_writes_full_output(tmp_path):
+    out = tmp_path / "result.pdf"
+    _ShWriter().write_file(out, fail=False)
+    assert out.read_text() == "hello"
+    assert [p.name for p in tmp_path.iterdir()] == ["result.pdf"]
+
+
+def test_atomic_path_failure_leaves_no_partial_output(tmp_path):
+    out = tmp_path / "result.pdf"
+    with pytest.raises(BackendError):
+        _ShWriter().write_file(out, fail=True)
+    assert not out.exists()
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_atomic_dir_success_moves_into_place(tmp_path):
+    out_dir = tmp_path / "pages"
+    _ShWriter().write_dir(out_dir, fail=False)
+    assert (out_dir / "page-1.txt").read_text() == "x"
+    assert [p.name for p in tmp_path.iterdir()] == ["pages"]
+
+
+def test_atomic_dir_failure_leaves_no_partial_directory(tmp_path):
+    out_dir = tmp_path / "pages"
+    with pytest.raises(BackendError):
+        _ShWriter().write_dir(out_dir, fail=True)
+    assert not out_dir.exists()
+    assert list(tmp_path.iterdir()) == []
+
+
 def test_run_raises_backend_error_on_missing_binary():
     with pytest.raises(BackendError) as exc_info:
         _Missing()._run([])

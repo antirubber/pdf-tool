@@ -19,6 +19,6 @@ class OcrmypdfBackend(SubprocessBackend):
         args: list[str] = ["-l", options.language]
         if options.force:
             args.append("--force-ocr")
-        args.extend([str(input_path), str(output_path)])
-        self._check(args, timeout=600.0)
+        with self._atomic_path(output_path) as tmp:
+            self._check([*args, str(input_path), str(tmp)], timeout=600.0)
         return output_path

@@ -21,18 +21,17 @@ class PdftoppmBackend(SubprocessBackend):
     def pdf_to_images(
         self, input_path: Path, output_dir: Path, options: PdfToImagesOptions
     ) -> Path:
-        output_dir.mkdir(parents=True, exist_ok=True)
-        prefix = str(output_dir / "page")
         fmt_flag = f"-{options.image_format}"
-        self._check(
-            [
-                fmt_flag,
-                "-r",
-                str(options.dpi),
-                str(input_path),
-                prefix,
-            ]
-        )
+        with self._atomic_dir(output_dir) as staging:
+            self._check(
+                [
+                    fmt_flag,
+                    "-r",
+                    str(options.dpi),
+                    str(input_path),
+                    str(staging / "page"),
+                ]
+            )
         return output_dir
 
 
@@ -42,5 +41,6 @@ class PdftotextBackend(SubprocessBackend):
     def pdf_to_text(
         self, input_path: Path, output_path: Path, options: PdfToTextOptions
     ) -> Path:
-        self._check([str(input_path), str(output_path)])
+        with self._atomic_path(output_path) as tmp:
+            self._check([str(input_path), str(tmp)])
         return output_path
