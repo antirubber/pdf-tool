@@ -2,8 +2,12 @@ import questionary
 from rich.console import Console
 
 from pdf_tool import __version__
+from pdf_tool.backends.ghostscript_backend import (
+    ghostscript_version,
+    ghostscript_warning,
+)
 from pdf_tool.core.error_translator import BackendError, translate
-from pdf_tool.core.probe import BackendName, probe
+from pdf_tool.core.probe import Available, BackendName, probe
 from pdf_tool.operations import compress as compress_op
 from pdf_tool.operations import convert as convert_op
 from pdf_tool.operations import decrypt as decrypt_op
@@ -71,6 +75,10 @@ def _dispatch(entry: MenuEntry, *, debug: bool) -> None:
 def run(*, debug: bool = False) -> None:
     availability = probe()
     _console.print(build_header(__version__))
+    if isinstance(availability.get(BackendName.GHOSTSCRIPT), Available):
+        warning = ghostscript_warning(ghostscript_version())
+        if warning:
+            _console.print(f"[yellow]{warning}[/yellow]")
     choices = build_menu(_OPERATIONS, availability)
     choice = questionary.select(
         "Pick an Operation:", choices=choices, style=WIZARD_STYLE

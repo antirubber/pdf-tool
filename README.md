@@ -65,6 +65,8 @@ Operations whose required backends are missing appear greyed-out with install hi
 
 Encrypt, decrypt, split, merge, rotate, inspect, watermark, metadata, and repair need only `pikepdf` (installed automatically with the package).
 
+Compress runs Ghostscript with `-dSAFER`. **Ghostscript 9.50 or newer is recommended** — older releases have weaker sandboxing even with `-dSAFER`, and the Wizard warns at startup when it detects an older version.
+
 ## Development
 
 ```bash
