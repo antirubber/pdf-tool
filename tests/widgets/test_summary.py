@@ -21,6 +21,17 @@ def test_show_page_count_echoes_count():
     assert "1 page" in _capture(lambda: summary.show_page_count(1))
 
 
+def test_clipboard_tool_detected_by_injected_which():
+    assert summary._clipboard_tool(which=lambda _: None) is None
+    found = {"wl-copy": "/usr/bin/wl-copy"}
+    assert summary._clipboard_tool(which=found.get) == ["wl-copy"]
+
+
+def test_offer_post_run_is_a_noop_when_not_interactive(tmp_path):
+    # In tests the console is not interactive, so it must not prompt or raise.
+    summary.offer_post_run(tmp_path / "x.pdf")
+
+
 def test_closing_panel_shows_path_size_and_pages(tmp_path):
     out = tmp_path / "result.pdf"
     out.write_bytes(b"%PDF-1.4\n" + b"x" * 2048)

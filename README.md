@@ -63,6 +63,7 @@ to run the installer if the checksum does not match (see
 ```bash
 pdf-tool                # launch the wizard
 pdf-tool update         # update to the latest release
+pdf-tool completion bash  # print a shell completion script (bash|zsh|fish)
 pdf-tool --version      # show version
 pdf-tool --debug        # show raw backend output and tracebacks
 ```

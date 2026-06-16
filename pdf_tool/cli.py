@@ -2,7 +2,7 @@ from typing import Annotated, Optional
 
 import typer
 
-from pdf_tool import __version__, updater, wizard
+from pdf_tool import __version__, completion, updater, wizard
 
 app = typer.Typer(add_completion=False, invoke_without_command=True)
 
@@ -40,3 +40,19 @@ def main(
 def update() -> None:
     """Update pdf-tool to the latest release."""
     raise typer.Exit(updater.run())
+
+
+@app.command(name="completion")
+def completion_command(
+    shell: Annotated[str, typer.Argument(help="bash, zsh, or fish")],
+) -> None:
+    """Print a shell completion script."""
+    script = completion.script_for(shell)
+    if script is None:
+        typer.echo(
+            f"Unsupported shell {shell!r}. Choose: "
+            f"{', '.join(completion.SUPPORTED_SHELLS)}.",
+            err=True,
+        )
+        raise typer.Exit(1)
+    typer.echo(script)
