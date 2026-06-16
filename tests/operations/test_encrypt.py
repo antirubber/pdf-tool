@@ -1,7 +1,10 @@
 import pytest
 
 from pdf_tool.backends.pikepdf_backend import EncryptOptions
-from pdf_tool.operations.encrypt import collect_encrypt_options
+from pdf_tool.operations.encrypt import (
+    _validate_non_empty_password,
+    collect_encrypt_options,
+)
 
 
 def test_same_password_uses_one_prompt_for_both(monkeypatch):
@@ -46,3 +49,26 @@ def test_cancelling_a_password_aborts():
         ask_password=lambda label: None,
     )
     assert options is None
+
+
+def test_empty_same_password_is_refused():
+    options = collect_encrypt_options(
+        ask_same=lambda: True,
+        ask_password=lambda label: "",
+    )
+    assert options is None  # never produce an unprotected file
+
+
+def test_empty_user_password_is_refused():
+    answers = iter(["", "owner-pw"])
+    options = collect_encrypt_options(
+        ask_same=lambda: False,
+        ask_password=lambda label: next(answers),
+    )
+    assert options is None
+
+
+def test_non_empty_password_validator_messages():
+    assert _validate_non_empty_password("secret") is True
+    msg = _validate_non_empty_password("   ")
+    assert isinstance(msg, str) and "empty" in msg.lower()

@@ -19,8 +19,14 @@ from pdf_tool.widgets.output_path import prompt_output_path
 _console = Console()
 
 
+def _validate_non_empty_password(raw: str) -> bool | str:
+    return bool(raw.strip()) or "Password cannot be empty."
+
+
 def _prompt_one_password(label: str) -> str | None:
-    password = questionary.password(label).ask()
+    password = questionary.password(
+        label, validate=_validate_non_empty_password
+    ).ask()
     if password is None:
         return None
     confirm = questionary.password(f"Confirm {label.lower()}").ask()
@@ -60,14 +66,27 @@ def collect_encrypt_options(
         password = ask_password("Password")
         if password is None:
             return None
+        if not _is_usable(password):
+            return None
         return EncryptOptions(password=password)
     user_pw = ask_password("User password (required to open the document)")
     if user_pw is None:
+        return None
+    if not _is_usable(user_pw):
         return None
     owner_pw = ask_password("Owner password (full permissions)")
     if owner_pw is None:
         return None
     return EncryptOptions(password=user_pw, owner_password=owner_pw)
+
+
+def _is_usable(password: str) -> bool:
+    # Defence in depth for the headline feature: never emit a file whose
+    # "encryption" opens with no prompt because the password was blank.
+    if password.strip():
+        return True
+    _console.print("[red]Password cannot be empty.[/red]")
+    return False
 
 
 def _run_one() -> None:
