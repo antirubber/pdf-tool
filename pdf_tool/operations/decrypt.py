@@ -14,6 +14,13 @@ def run() -> None:
     if input_path is None:
         return
 
+    backend = PikepdfBackend()
+    if not backend.inspect(input_path).encrypted:
+        _console.print(
+            "[yellow]This PDF is not encrypted — nothing to decrypt.[/yellow]"
+        )
+        return
+
     password = questionary.password("Password").ask()
     if password is None:
         return
@@ -25,5 +32,5 @@ def run() -> None:
     if output is None:
         return
 
-    PikepdfBackend().decrypt(input_path, output, DecryptOptions(password=password))
+    backend.decrypt(input_path, output, DecryptOptions(password=password))
     _console.print(f"[green]Wrote {output}[/green]")
