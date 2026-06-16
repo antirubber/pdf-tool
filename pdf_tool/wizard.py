@@ -64,6 +64,8 @@ def _dispatch(entry: MenuEntry, *, debug: bool) -> None:
             raise
         friendly = translate(entry.value, e.failure)
         _console.print(f"[red]{friendly.message}[/red]")
+        if friendly.suggested_action:
+            _console.print(f"[yellow]{friendly.suggested_action}[/yellow]")
 
 
 def run(*, debug: bool = False) -> None:

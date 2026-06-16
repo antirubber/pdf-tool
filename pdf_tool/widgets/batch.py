@@ -107,8 +107,11 @@ def run_per_file(
             )
         except BackendError as e:
             friendly = translate(operation, e.failure)
+            detail = friendly.message
+            if friendly.suggested_action:
+                detail = f"{detail} {friendly.suggested_action}"
             outcomes.append(
-                BatchOutcome(path=path, succeeded=False, message=friendly.message)
+                BatchOutcome(path=path, succeeded=False, message=detail)
             )
     return outcomes
 

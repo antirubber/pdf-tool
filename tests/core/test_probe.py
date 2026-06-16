@@ -54,6 +54,26 @@ def test_all_backends_missing_carry_install_hints():
     }
 
 
+def test_install_hint_uses_apt_when_apt_present():
+    # Backends all missing, but apt-get is on PATH → Debian-style hints.
+    found = {"apt-get": "/usr/bin/apt-get"}
+    result = probe(which=found.get)
+    assert result[BackendName.GHOSTSCRIPT] == Missing(
+        install_hint="sudo apt install ghostscript"
+    )
+    assert result[BackendName.PDFTOPPM] == Missing(
+        install_hint="sudo apt install poppler-utils"
+    )
+
+
+def test_install_hint_uses_pacman_when_pacman_present():
+    found = {"pacman": "/usr/bin/pacman"}
+    result = probe(which=found.get)
+    assert result[BackendName.LIBREOFFICE] == Missing(
+        install_hint="sudo pacman -S libreoffice-fresh"
+    )
+
+
 def test_mixed_presence():
     found = {"gs": "/usr/bin/gs", "img2pdf": "/usr/bin/img2pdf"}
     result = probe(which=found.get)
