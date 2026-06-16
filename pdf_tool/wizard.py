@@ -16,6 +16,7 @@ from pdf_tool.operations import inspect as inspect_op
 from pdf_tool.operations import merge as merge_op
 from pdf_tool.operations import metadata as metadata_op
 from pdf_tool.operations import ocr as ocr_op
+from pdf_tool.operations import remove as remove_op
 from pdf_tool.operations import repair as repair_op
 from pdf_tool.operations import rotate as rotate_op
 from pdf_tool.operations import split as split_op
@@ -39,6 +40,7 @@ _OPERATIONS: tuple[MenuEntry, ...] = (
     MenuEntry("Metadata", "metadata", metadata_op.run, (BackendName.PIKEPDF,), OperationGroup.INSPECT),
     MenuEntry("Rotate", "rotate", rotate_op.run, (BackendName.PIKEPDF,), OperationGroup.TRANSFORM),
     MenuEntry("Split", "split", split_op.run, (BackendName.PIKEPDF,), OperationGroup.TRANSFORM),
+    MenuEntry("Remove pages", "remove", remove_op.run, (BackendName.PIKEPDF,), OperationGroup.TRANSFORM),
     MenuEntry("Merge", "merge", merge_op.run, (BackendName.PIKEPDF,), OperationGroup.TRANSFORM),
     MenuEntry("Compress", "compress", compress_op.run, (BackendName.GHOSTSCRIPT,), OperationGroup.TRANSFORM),
     MenuEntry("Watermark", "watermark", watermark_op.run, (BackendName.PIKEPDF,), OperationGroup.TRANSFORM),

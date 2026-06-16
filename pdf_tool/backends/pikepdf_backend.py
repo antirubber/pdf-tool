@@ -213,6 +213,23 @@ class PikepdfBackend:
         return output_path
 
     @_translates
+    def remove_pages(
+        self, input_path: Path, output_path: Path, *, pages: list[int]
+    ) -> Path:
+        remove = set(pages)
+        with pikepdf.open(input_path) as src:
+            keep = [
+                i for i in range(1, len(src.pages) + 1) if i not in remove
+            ]
+            if not keep:
+                raise ValueError("removing every page would leave an empty PDF")
+            dst = pikepdf.new()
+            for page_num in keep:
+                dst.pages.append(src.pages[page_num - 1])
+            dst.save(output_path, min_version=src.pdf_version)
+        return output_path
+
+    @_translates
     def watermark(
         self, input_path: Path, output_path: Path, options: WatermarkOptions
     ) -> Path:

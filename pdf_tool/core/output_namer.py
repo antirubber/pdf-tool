@@ -10,6 +10,7 @@ _SUFFIX_BY_OPERATION = {
     "watermark": "watermarked",
     "repair": "repaired",
     "merge": "merged",
+    "remove": "trimmed",
 }
 
 _DIRECTORY_SUFFIX_BY_OPERATION = {

@@ -153,6 +153,21 @@ def test_extract_pages_into_one(make_pdf, tmp_path):
         assert len(pdf.pages) == 3
 
 
+def test_remove_pages_keeps_the_unselected_pages(make_pdf, tmp_path):
+    src = make_pdf("src.pdf", n_pages=5)
+    out = PikepdfBackend().remove_pages(src, tmp_path / "trim.pdf", pages=[2, 4])
+    with pikepdf.open(out) as pdf:
+        assert len(pdf.pages) == 3  # 1, 3, 5 kept
+
+
+def test_remove_all_pages_raises_and_writes_nothing(make_pdf, tmp_path):
+    src = make_pdf("src.pdf", n_pages=3)
+    out = tmp_path / "x.pdf"
+    with pytest.raises(BackendError):
+        PikepdfBackend().remove_pages(src, out, pages=[1, 2, 3])
+    assert not out.exists()
+
+
 def test_merge_concatenates_page_counts(make_pdf, tmp_path):
     a = make_pdf("a.pdf", n_pages=2)
     b = make_pdf("b.pdf", n_pages=5)
