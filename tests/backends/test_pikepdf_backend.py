@@ -4,10 +4,12 @@ import pytest
 from pdf_tool.backends.pikepdf_backend import (
     DecryptOptions,
     EncryptOptions,
+    PageNumberOptions,
     PdfInfo,
     PikepdfBackend,
     WatermarkOptions,
     _page_stamp_geometry,
+    format_page_label,
 )
 from pdf_tool.core.error_translator import BackendError, PikepdfFailure
 
@@ -197,6 +199,37 @@ def test_set_metadata_persists_title(sample_pdf, tmp_path):
     PikepdfBackend().set_metadata(sample_pdf, out, fields={"Title": "My Report"})
     info = PikepdfBackend().inspect(out)
     assert info.metadata.get("Title") == "My Report"
+
+
+def test_format_page_label_styles():
+    assert format_page_label(3, total=10, style="plain") == "3"
+    assert format_page_label(3, total=10, style="of_total") == "3 of 10"
+    assert format_page_label(3, total=10, style="page_n") == "Page 3"
+
+
+def test_format_page_label_bates_is_sequential_and_zero_padded():
+    labels = [
+        format_page_label(
+            n, total=3, style="bates", bates_prefix="EX-", bates_width=4
+        )
+        for n in (1, 2, 3)
+    ]
+    assert labels == ["EX-0001", "EX-0002", "EX-0003"]
+
+
+def test_add_page_numbers_stamps_only_target_pages(tmp_path):
+    src = pikepdf.new()
+    for _ in range(3):
+        src.add_blank_page(page_size=(300, 400))
+    src.save(tmp_path / "src.pdf")
+    out = PikepdfBackend().add_page_numbers(
+        tmp_path / "src.pdf", tmp_path / "out.pdf", PageNumberOptions(pages=[1, 3])
+    )
+    with pikepdf.open(out) as pdf:
+        assert len(pdf.pages) == 3
+        assert "/XObject" in pdf.pages[0].Resources
+        assert "/XObject" not in pdf.pages[1].Resources
+        assert "/XObject" in pdf.pages[2].Resources
 
 
 def test_stamp_geometry_uses_page_box_and_origin():

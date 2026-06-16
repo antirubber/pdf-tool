@@ -16,6 +16,7 @@ from pdf_tool.operations import inspect as inspect_op
 from pdf_tool.operations import merge as merge_op
 from pdf_tool.operations import metadata as metadata_op
 from pdf_tool.operations import ocr as ocr_op
+from pdf_tool.operations import page_numbers as page_numbers_op
 from pdf_tool.operations import remove as remove_op
 from pdf_tool.operations import reorder as reorder_op
 from pdf_tool.operations import repair as repair_op
@@ -46,6 +47,7 @@ _OPERATIONS: tuple[MenuEntry, ...] = (
     MenuEntry("Merge", "merge", merge_op.run, (BackendName.PIKEPDF,), OperationGroup.TRANSFORM),
     MenuEntry("Compress", "compress", compress_op.run, (BackendName.GHOSTSCRIPT,), OperationGroup.TRANSFORM),
     MenuEntry("Watermark", "watermark", watermark_op.run, (BackendName.PIKEPDF,), OperationGroup.TRANSFORM),
+    MenuEntry("Page numbers", "page_numbers", page_numbers_op.run, (BackendName.PIKEPDF,), OperationGroup.TRANSFORM),
     MenuEntry(
         "Convert",
         "convert",

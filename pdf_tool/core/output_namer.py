@@ -12,6 +12,7 @@ _SUFFIX_BY_OPERATION = {
     "merge": "merged",
     "remove": "trimmed",
     "reorder": "reordered",
+    "page_numbers": "numbered",
 }
 
 _DIRECTORY_SUFFIX_BY_OPERATION = {

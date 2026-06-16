@@ -2,7 +2,7 @@ import functools
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import ParamSpec, TypeVar
+from typing import Literal, ParamSpec, TypeVar
 
 import pikepdf
 
@@ -70,6 +70,61 @@ class EncryptOptions:
 @dataclass(frozen=True)
 class DecryptOptions:
     password: str
+
+
+PageNumberStyle = Literal["plain", "of_total", "page_n", "bates"]
+
+_PAGE_NUMBER_POSITIONS: dict[str, tuple[str, str]] = {
+    "bottom-center": ("bottom", "center"),
+    "bottom-left": ("bottom", "left"),
+    "bottom-right": ("bottom", "right"),
+    "top-center": ("top", "center"),
+    "top-left": ("top", "left"),
+    "top-right": ("top", "right"),
+}
+
+
+@dataclass(frozen=True)
+class PageNumberOptions:
+    pages: list[int]
+    start: int = 1
+    style: PageNumberStyle = "plain"
+    position: str = "bottom-center"
+    bates_prefix: str = ""
+    bates_width: int = 6
+    font_size: int = 12
+    margin: float = 36.0
+
+
+def format_page_label(
+    number: int,
+    *,
+    total: int,
+    style: str = "plain",
+    bates_prefix: str = "",
+    bates_width: int = 6,
+) -> str:
+    if style == "of_total":
+        return f"{number} of {total}"
+    if style == "page_n":
+        return f"Page {number}"
+    if style == "bates":
+        return f"{bates_prefix}{number:0{bates_width}d}"
+    return str(number)
+
+
+def _label_xy(
+    position: str, width: float, height: float, margin: float, text_width: float
+) -> tuple[float, float]:
+    vert, horiz = _PAGE_NUMBER_POSITIONS.get(position, ("bottom", "center"))
+    y = margin if vert == "bottom" else height - margin
+    if horiz == "left":
+        x = margin
+    elif horiz == "right":
+        x = max(margin, width - margin - text_width)
+    else:
+        x = (width - text_width) / 2
+    return x, y
 
 
 @dataclass(frozen=True)
@@ -281,6 +336,47 @@ class PikepdfBackend:
                 stamp_pdf = canvas.to_pdf()
                 Page(page).add_overlay(Page(stamp_pdf.pages[0]), Rectangle(*rect))
             pdf.save(output_path)
+        return output_path
+
+    @_translates
+    def add_page_numbers(
+        self, input_path: Path, output_path: Path, options: PageNumberOptions
+    ) -> Path:
+        from pikepdf import Matrix, Name, Page, Rectangle
+        from pikepdf.canvas import Canvas, Color, Helvetica, Text
+
+        target = set(options.pages)
+        with pikepdf.open(input_path) as pdf:
+            total = len(pdf.pages)
+            stamped = 0
+            for i, page in enumerate(pdf.pages, start=1):
+                if i not in target:
+                    continue
+                label = format_page_label(
+                    options.start + stamped,
+                    total=total,
+                    style=options.style,
+                    bates_prefix=options.bates_prefix,
+                    bates_width=options.bates_width,
+                )
+                stamped += 1
+                (width, height), rect = _page_stamp_geometry(page.mediabox)
+                text_width = 0.5 * options.font_size * len(label)
+                x, y = _label_xy(
+                    options.position, width, height, options.margin, text_width
+                )
+                canvas = Canvas(page_size=(width, height))
+                canvas.add_font(Name("/PdfToolHelv"), Helvetica())
+                with canvas.do.save_state():
+                    canvas.do.fill_color(Color(0.0, 0.0, 0.0, 1.0))
+                    text = Text()
+                    text.font("/PdfToolHelv", options.font_size)
+                    text.text_transform(Matrix.identity().translated(x, y))
+                    text.show(label)
+                    canvas.do.draw_text(text)
+                stamp_pdf = canvas.to_pdf()
+                Page(page).add_overlay(Page(stamp_pdf.pages[0]), Rectangle(*rect))
+            pdf.save(output_path, min_version=pdf.pdf_version)
         return output_path
 
     @_translates
