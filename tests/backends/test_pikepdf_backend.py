@@ -46,6 +46,23 @@ def test_encrypt_with_distinct_owner_and_user_passwords(sample_pdf, tmp_path):
         pikepdf.open(out, password="wrong")
 
 
+def test_encrypt_applies_strength_and_permissions(sample_pdf, tmp_path):
+    opts = EncryptOptions(password="pw", strength=128, allow_copy=False)
+    out = PikepdfBackend().encrypt(sample_pdf, tmp_path / "e.pdf", opts)
+    with pikepdf.open(out, password="pw") as pdf:
+        assert pdf.encryption.bits == 128
+        assert pdf.allow.extract is False
+        assert pdf.allow.print_highres is True
+
+
+def test_encrypt_40bit_strength_is_reflected(sample_pdf, tmp_path):
+    out = PikepdfBackend().encrypt(
+        sample_pdf, tmp_path / "e.pdf", EncryptOptions(password="pw", strength=40)
+    )
+    with pikepdf.open(out, password="pw") as pdf:
+        assert pdf.encryption.bits == 40
+
+
 def test_decrypt_removes_password(sample_pdf, tmp_path):
     backend = PikepdfBackend()
     encrypted = backend.encrypt(

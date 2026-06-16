@@ -65,6 +65,20 @@ def _translates(method: Callable[_P, _R]) -> Callable[_P, _R]:
 class EncryptOptions:
     password: str
     owner_password: str | None = None
+    strength: int = 256  # 256-bit AES / 128-bit AES / 40-bit RC4
+    allow_print: bool = True
+    allow_copy: bool = True
+    allow_modify: bool = True
+    allow_annotate: bool = True
+
+
+# strength -> pikepdf.Encryption params. 40-bit is legacy RC4 and cannot
+# encrypt metadata (R < 4), so it disables AES and metadata encryption.
+_ENCRYPTION_BY_STRENGTH: dict[int, dict[str, object]] = {
+    256: {"R": 6, "aes": True, "metadata": True},
+    128: {"R": 4, "aes": True, "metadata": True},
+    40: {"R": 2, "aes": False, "metadata": False},
+}
 
 
 @dataclass(frozen=True)
@@ -161,12 +175,28 @@ class PikepdfBackend:
     def encrypt(
         self, input_path: Path, output_path: Path, options: EncryptOptions
     ) -> Path:
+        from pikepdf import Permissions
+
+        params = _ENCRYPTION_BY_STRENGTH.get(
+            options.strength, _ENCRYPTION_BY_STRENGTH[256]
+        )
+        permissions = Permissions(
+            extract=options.allow_copy,
+            modify_annotation=options.allow_annotate,
+            modify_assembly=options.allow_modify,
+            modify_form=options.allow_modify,
+            modify_other=options.allow_modify,
+            print_lowres=options.allow_print,
+            print_highres=options.allow_print,
+        )
         with pikepdf.open(input_path) as pdf:
             pdf.save(
                 output_path,
                 encryption=pikepdf.Encryption(
                     owner=options.owner_password or options.password,
                     user=options.password,
+                    allow=permissions,
+                    **params,
                 ),
             )
         return output_path
