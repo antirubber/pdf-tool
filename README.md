@@ -39,6 +39,25 @@ sudo apt-get install -y ghostscript poppler-utils img2pdf && uv tool install git
 `pipx install git+…` works anywhere `uv tool install` does.
 </details>
 
+<details>
+<summary>Verify the installer before running it</summary>
+
+Every release publishes `install.sh` and a `SHA256SUMS` file as assets, pinned
+to the release tag. To verify integrity before executing fetched code:
+
+```bash
+base=https://github.com/antirubber/pdf-tool/releases/latest/download
+curl -fsSLO "$base/install.sh"
+curl -fsSLO "$base/SHA256SUMS"
+sha256sum -c SHA256SUMS   # must print: install.sh: OK
+sh install.sh
+```
+
+`pdf-tool update` performs this download-verify-run automatically and refuses
+to run the installer if the checksum does not match (see
+[ADR-0002](docs/adr/0002-installer-integrity-checksum.md)).
+</details>
+
 ## Usage
 
 ```bash

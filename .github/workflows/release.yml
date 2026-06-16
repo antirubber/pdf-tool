@@ -20,7 +20,10 @@ jobs:
       - name: Run tests
         run: uv run pytest
 
-      - name: Create GitHub Release
+      - name: Create GitHub Release with verified installer
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --generate-notes
+        run: |
+          sha256sum install.sh > SHA256SUMS
+          gh release create "$GITHUB_REF_NAME" --generate-notes \
+            install.sh SHA256SUMS
