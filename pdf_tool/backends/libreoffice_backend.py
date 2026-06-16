@@ -1,3 +1,4 @@
+import os
 import shutil
 import tempfile
 from dataclasses import dataclass
@@ -61,18 +62,26 @@ class LibreOfficeBackend(SubprocessBackend):
     def convert(
         self, input_path: Path, output_path: Path, options: ConvertOptions
     ) -> Path:
-        out_dir = output_path.parent
-        out_dir.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(prefix=".soffice-profile-") as profile:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        # LibreOffice always writes <stem>.<format> into its --outdir and would
+        # overwrite a real user file of that name before we could rename it.
+        # Convert into an isolated work dir (same filesystem as the output, so
+        # the move is atomic) and move only the single product into place.
+        with (
+            tempfile.TemporaryDirectory(prefix=".soffice-profile-") as profile,
+            tempfile.TemporaryDirectory(
+                prefix=".soffice-out-", dir=output_path.parent
+            ) as work,
+        ):
             profile_dir = Path(profile)
+            work_dir = Path(work)
             _write_macro_hardening(profile_dir)
             self._check(
                 _soffice_args(
-                    input_path, options.target_format, out_dir, profile_dir
+                    input_path, options.target_format, work_dir, profile_dir
                 ),
                 timeout=180.0,
             )
-        produced = out_dir / f"{input_path.stem}.{options.target_format}"
-        if produced != output_path:
-            produced.replace(output_path)
+            produced = work_dir / f"{input_path.stem}.{options.target_format}"
+            os.replace(produced, output_path)
         return output_path
