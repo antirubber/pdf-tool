@@ -45,8 +45,10 @@ WIZARD_STYLE = questionary.Style(
         ("pointer", f"fg:{ACCENT} bold"),
         ("highlighted", f"fg:{ACCENT} bold"),
         ("selected", f"fg:{ACCENT}"),
-        ("separator", "fg:#6c6c6c"),
-        ("disabled", "fg:#858585 italic"),
+        # Group headers get the accent so they read as headers, distinct from
+        # the dim, italic "unavailable" disabled rows.
+        ("separator", f"fg:{ACCENT} bold"),
+        ("disabled", "fg:#6c6c6c italic"),
     ]
 )
 
@@ -69,7 +71,9 @@ def _choice_for(entry: MenuEntry, availability: BackendAvailability) -> question
         if not isinstance(status, Available):
             hints.append(status.install_hint)
     hint = " or ".join(hints) if hints else "missing backend"
-    return questionary.Choice(entry.label, value=entry.value, disabled=f"install: {hint}")
+    return questionary.Choice(
+        entry.label, value=entry.value, disabled=f"unavailable — {hint}"
+    )
 
 
 def build_menu(

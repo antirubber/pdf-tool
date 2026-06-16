@@ -27,7 +27,7 @@ _BATCH_PAGE_REF = 1_000_000
 
 
 def _prompt_angle() -> int | None:
-    return questionary.select("Rotation?", choices=_ANGLE_CHOICES).ask()
+    return questionary.select("Which rotation?", choices=_ANGLE_CHOICES).ask()
 
 
 def _run_one() -> None:

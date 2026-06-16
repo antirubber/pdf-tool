@@ -37,7 +37,7 @@ def _collect_options(n_pages: int, advanced: bool) -> PageNumberOptions | None:
     if not advanced:
         return PageNumberOptions(pages=resolve(All(), n_pages=n_pages))
 
-    position = questionary.select("Position?", choices=_POSITION_CHOICES).ask()
+    position = questionary.select("Which position?", choices=_POSITION_CHOICES).ask()
     if position is None:
         return None
     style = questionary.select("Number format?", choices=_FORMAT_CHOICES).ask()

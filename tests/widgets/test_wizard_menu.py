@@ -5,11 +5,19 @@ from rich.console import Console
 
 from pdf_tool.core.probe import Available, BackendAvailability, BackendName, Missing
 from pdf_tool.widgets.wizard_menu import (
+    ACCENT,
+    WIZARD_STYLE,
     MenuEntry,
     OperationGroup,
     build_header,
     build_menu,
 )
+
+
+def test_group_headers_and_disabled_rows_use_distinct_styles():
+    rules = dict(WIZARD_STYLE.style_rules)
+    assert ACCENT in rules["separator"]  # group headers are accented
+    assert ACCENT not in rules["disabled"]  # unavailable rows are not
 
 
 def _noop() -> None:
@@ -80,7 +88,7 @@ def test_missing_backend_produces_disabled_choice_with_install_hint():
     availability[BackendName.OCRMYPDF] = Missing(install_hint="brew install ocrmypdf")
     items = build_menu(_entries(), availability)
     ocr = next(i for i in items if not isinstance(i, questionary.Separator) and i.title == "OCR")
-    assert ocr.disabled == "install: brew install ocrmypdf"
+    assert ocr.disabled == "unavailable — brew install ocrmypdf"
 
 
 def test_choice_with_at_least_one_available_backend_is_enabled():

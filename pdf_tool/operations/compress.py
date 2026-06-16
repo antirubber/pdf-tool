@@ -27,7 +27,7 @@ def _prompt_preset() -> str | None:
     if not advanced:
         return "ebook"
     return questionary.select(
-        "Preset?",
+        "Which preset?",
         choices=[
             questionary.Choice("/ebook (default — good for email)", value="ebook"),
             questionary.Choice("/screen (smallest, lowest quality)", value="screen"),

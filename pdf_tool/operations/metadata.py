@@ -90,7 +90,7 @@ def _run_one() -> None:
 
     backend = PikepdfBackend()
     action = questionary.select(
-        "Action?",
+        "Which action?",
         choices=[
             questionary.Choice("View metadata", value="view"),
             questionary.Choice("Edit metadata", value="edit"),

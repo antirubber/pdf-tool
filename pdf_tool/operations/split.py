@@ -43,7 +43,7 @@ def run() -> None:
     n_pages, password = unlocked
 
     mode = questionary.select(
-        "Split Mode?",
+        "Split mode?",
         choices=[
             questionary.Choice("One file per page", value="every_page"),
             questionary.Choice("Every N pages", value="every_n"),
