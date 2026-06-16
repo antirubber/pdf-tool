@@ -168,6 +168,62 @@ class PdfInfo:
     n_pages: int | None
     encrypted: bool
     metadata: dict[str, str] = field(default_factory=dict)
+    file_size: int | None = None
+    pdf_version: str | None = None
+    page_size: tuple[float, float] | None = None
+    page_label: str | None = None
+    has_text: bool | None = None
+
+
+# Standard paper sizes in points (portrait orientation).
+_PAPER_SIZES: dict[str, tuple[float, float]] = {
+    "A3": (842.0, 1191.0),
+    "A4": (595.0, 842.0),
+    "A5": (420.0, 595.0),
+    "Letter": (612.0, 792.0),
+    "Legal": (612.0, 1008.0),
+    "Tabloid": (792.0, 1224.0),
+}
+
+_TEXT_OPERATORS: tuple[bytes, ...] = (b"Tj", b"TJ")
+
+
+def _dimension_label(width: float, height: float, tol: float = 3.0) -> str:
+    low, high = sorted((width, height))
+    orientation = "portrait" if height >= width else "landscape"
+    for name, (pw, ph) in _PAPER_SIZES.items():
+        if abs(low - pw) <= tol and abs(high - ph) <= tol:
+            return f"{name} {orientation}"
+    return f"{orientation} ({width:.0f}×{height:.0f} pt)"
+
+
+def _page_streams(page: "pikepdf.Page") -> Iterable[bytes]:
+    obj = page.obj
+    contents = obj.get("/Contents")
+    if contents is not None:
+        if isinstance(contents, pikepdf.Array):
+            for stream in contents:
+                yield stream.read_bytes()
+        else:
+            yield contents.read_bytes()
+    resources = obj.get("/Resources")
+    if resources is None:
+        return
+    xobjects = resources.get("/XObject")
+    if xobjects is None:
+        return
+    for name in xobjects.keys():
+        form = xobjects[name]
+        if form.get("/Subtype") == pikepdf.Name("/Form"):
+            yield form.read_bytes()
+
+
+def _has_text_layer(pdf: "pikepdf.Pdf") -> bool:
+    for page in pdf.pages:
+        for stream in _page_streams(page):
+            if any(op in stream for op in _TEXT_OPERATORS):
+                return True
+    return False
 
 
 class PikepdfBackend:
@@ -468,10 +524,11 @@ class PikepdfBackend:
 
     @_translates
     def inspect(self, input_path: Path) -> "PdfInfo":
+        file_size = input_path.stat().st_size
         try:
             pdf = pikepdf.open(input_path)
         except pikepdf.PasswordError:
-            return PdfInfo(n_pages=None, encrypted=True)
+            return PdfInfo(n_pages=None, encrypted=True, file_size=file_size)
         with pdf:
             metadata = {}
             try:
@@ -482,8 +539,21 @@ class PikepdfBackend:
                 for key in _DOCINFO_KEYS:
                     if key in docinfo:
                         metadata[key.lstrip("/")] = str(docinfo[key])
+            page_size = None
+            page_label = None
+            if pdf.pages:
+                box = pdf.pages[0].mediabox
+                width = float(box[2]) - float(box[0])
+                height = float(box[3]) - float(box[1])
+                page_size = (width, height)
+                page_label = _dimension_label(width, height)
             return PdfInfo(
                 n_pages=len(pdf.pages),
                 encrypted=pdf.is_encrypted,
                 metadata=metadata,
+                file_size=file_size,
+                pdf_version=pdf.pdf_version,
+                page_size=page_size,
+                page_label=page_label,
+                has_text=_has_text_layer(pdf),
             )

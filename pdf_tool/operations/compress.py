@@ -4,6 +4,7 @@ import questionary
 from rich.console import Console
 
 from pdf_tool.backends.ghostscript_backend import CompressOptions, GhostscriptBackend
+from pdf_tool.core.humanize import humanize_bytes
 from pdf_tool.core.output_namer import derive_output, ensure_unique
 from pdf_tool.widgets.batch import (
     collect_directory_files_interactive,
@@ -16,14 +17,6 @@ from pdf_tool.widgets.file_input import prompt_input_file
 from pdf_tool.widgets.output_path import prompt_output_path
 
 _console = Console()
-
-
-def _human(n_bytes: float) -> str:
-    for unit in ("B", "KB", "MB", "GB"):
-        if n_bytes < 1024:
-            return f"{n_bytes:.1f} {unit}"
-        n_bytes /= 1024
-    return f"{n_bytes:.1f} TB"
 
 
 def _prompt_preset() -> str | None:
@@ -65,7 +58,7 @@ def _run_one() -> None:
     pct = (after / before * 100) if before else 100
     _console.print(
         f"[green]Wrote {output}[/green]  "
-        f"({_human(before)} → {_human(after)}, {pct:.0f}%)"
+        f"({humanize_bytes(before)} → {humanize_bytes(after)}, {pct:.0f}%)"
     )
 
 

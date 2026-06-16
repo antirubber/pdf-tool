@@ -8,10 +8,60 @@ from pdf_tool.backends.pikepdf_backend import (
     PdfInfo,
     PikepdfBackend,
     WatermarkOptions,
+    _dimension_label,
     _page_stamp_geometry,
     format_page_label,
 )
 from pdf_tool.core.error_translator import BackendError, PikepdfFailure
+
+
+def _text_pdf(path):
+    pdf = pikepdf.new()
+    page = pdf.add_blank_page(page_size=(595, 842))
+    font = pdf.make_indirect(
+        pikepdf.Dictionary(
+            Type=pikepdf.Name.Font,
+            Subtype=pikepdf.Name.Type1,
+            BaseFont=pikepdf.Name.Helvetica,
+        )
+    )
+    page.Resources = pikepdf.Dictionary(Font=pikepdf.Dictionary(F1=font))
+    page.Contents = pdf.make_stream(b"BT /F1 24 Tf 72 700 Td (Hello world) Tj ET")
+    pdf.save(path)
+    return path
+
+
+def test_dimension_label_recognizes_standard_sizes():
+    assert _dimension_label(595, 842) == "A4 portrait"
+    assert _dimension_label(842, 595) == "A4 landscape"
+    assert _dimension_label(612, 792) == "Letter portrait"
+    assert "×" in _dimension_label(200, 300)  # non-standard -> dims fallback
+
+
+def test_inspect_reports_enriched_fields(tmp_path):
+    src = _text_pdf(tmp_path / "text.pdf")
+    info = PikepdfBackend().inspect(src)
+    assert info.file_size is not None and info.file_size > 0
+    assert info.pdf_version is not None
+    assert info.page_size == (595.0, 842.0)
+    assert info.page_label == "A4 portrait"
+    assert info.has_text is True
+
+
+def test_inspect_blank_pdf_has_no_text_layer(make_pdf):
+    info = PikepdfBackend().inspect(make_pdf("blank.pdf", n_pages=1))
+    assert info.has_text is False
+
+
+def test_inspect_encrypted_still_reports_size_gracefully(sample_pdf, tmp_path):
+    enc = PikepdfBackend().encrypt(
+        sample_pdf, tmp_path / "enc.pdf", EncryptOptions(password="s")
+    )
+    info = PikepdfBackend().inspect(enc)
+    assert info.encrypted is True
+    assert info.file_size is not None
+    assert info.n_pages is None
+    assert info.has_text is None
 
 
 def test_encrypt_produces_password_protected_pdf(sample_pdf, tmp_path):
