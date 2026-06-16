@@ -153,7 +153,6 @@ wheels = [
 
 [[package]]
 name = "pdf-tool"
-version = "0.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "pikepdf" },

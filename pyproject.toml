@@ -1,6 +1,6 @@
 [project]
 name = "pdf-tool"
-version = "0.0.1"
+dynamic = ["version"]
 description = "Interactive wizard CLI for everyday PDF manipulation."
 requires-python = ">=3.12"
 dependencies = [
@@ -27,6 +27,11 @@ markers = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+# Single source of truth for the version: __version__ in pdf_tool/__init__.py.
+# The release script bumps only that line; package metadata is read from it.
+[tool.hatch.version]
+path = "pdf_tool/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["pdf_tool"]
