@@ -28,7 +28,7 @@ def test_rotate_operation_unlocks_and_rotates_encrypted_input(
     monkeypatch.setattr(rotate_op.questionary, "select", lambda *a, **k: _Ans(90))
     monkeypatch.setattr(rotate_op, "prompt_output_path", lambda *a, **k: out)
 
-    rotate_op.run()
+    rotate_op._run_one()
 
     with pikepdf.open(out) as pdf:  # decrypted output opens without a password
         assert int(pdf.pages[0].obj.get("/Rotate", 0)) == 90

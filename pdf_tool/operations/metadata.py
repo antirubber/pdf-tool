@@ -1,9 +1,12 @@
+from pathlib import Path
+
 import questionary
 from rich.console import Console
 from rich.table import Table
 
 from pdf_tool.backends.pikepdf_backend import PikepdfBackend
 from pdf_tool.core.output_namer import ensure_unique
+from pdf_tool.widgets.batch import run_one_or_many
 from pdf_tool.widgets.file_input import prompt_input_file
 from pdf_tool.widgets.output_path import prompt_output_path
 
@@ -77,7 +80,7 @@ def _strip(backend: PikepdfBackend, input_path) -> None:
     _console.print(f"[green]Wrote {output}[/green]")
 
 
-def run() -> None:
+def _run_one() -> None:
     input_path = prompt_input_file("Input PDF")
     if input_path is None:
         return
@@ -100,3 +103,25 @@ def run() -> None:
         _edit(backend, input_path)
     else:
         _strip(backend, input_path)
+
+
+def _make_strip_process(_params: object):
+    backend = PikepdfBackend()
+
+    def process(path: Path) -> Path:
+        output = ensure_unique(path.with_stem(f"{path.stem}-sanitised"))
+        return backend.strip_metadata(path, output)
+
+    return process
+
+
+def run() -> None:
+    # Batch applies to Strip only; View/Edit are interactive per file.
+    run_one_or_many(
+        operation="metadata",
+        first_prompt="First PDF to strip",
+        run_single=_run_one,
+        collect_params=lambda: object(),
+        make_process=_make_strip_process,
+        confirm_message=lambda n, _: f"Will strip metadata from {n} files. OK?",
+    )

@@ -12,7 +12,7 @@ def test_decrypt_reports_an_unencrypted_input(monkeypatch, capsys, sample_pdf):
     monkeypatch.setattr(decrypt_op.questionary, "password", _boom)
     monkeypatch.setattr(decrypt_op, "prompt_output_path", _boom)
 
-    decrypt_op.run()
+    decrypt_op._run_one()
 
     out = capsys.readouterr().out.lower()
     assert "not encrypted" in out
@@ -34,7 +34,7 @@ def test_decrypt_proceeds_for_a_genuinely_encrypted_input(
     )
     monkeypatch.setattr(decrypt_op, "prompt_output_path", lambda *a, **k: out_path)
 
-    decrypt_op.run()
+    decrypt_op._run_one()
 
     import pikepdf
 

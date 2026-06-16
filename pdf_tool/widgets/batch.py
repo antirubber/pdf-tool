@@ -1,13 +1,16 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Callable, TypeVar
 
 import questionary
 from rich.console import Console
 from rich.table import Table
 
 from pdf_tool.core.error_translator import BackendError, translate
+from pdf_tool.core.range_parser import RangeParseError
 from pdf_tool.widgets.file_input import prompt_input_directory, prompt_input_file
+
+_P = TypeVar("_P")
 
 
 def collect_directory_files(
@@ -113,7 +116,56 @@ def run_per_file(
             outcomes.append(
                 BatchOutcome(path=path, succeeded=False, message=detail)
             )
+        except RangeParseError as e:
+            # A shared custom Page Selection can be out of bounds for some
+            # files in a Batch; that file fails, the run continues.
+            outcomes.append(
+                BatchOutcome(path=path, succeeded=False, message=str(e))
+            )
     return outcomes
+
+
+def run_one_or_many(
+    *,
+    operation: str,
+    first_prompt: str,
+    run_single: Callable[[], None],
+    collect_params: Callable[[], _P | None],
+    make_process: Callable[[_P], Callable[[Path], Path]],
+    confirm_message: Callable[[int, _P], str],
+    extensions: set[str] | None = None,
+) -> None:
+    """Drive the one / many / directory Batch pattern for an Operation.
+
+    Single-file runs delegate to ``run_single``. For many/directory, the inputs
+    are gathered, a shared parameter set is collected once via
+    ``collect_params``, and ``make_process`` builds the per-file worker; the
+    per-file summary prints OK/FAIL rows.
+    """
+    mode = prompt_one_or_many()
+    if mode is None:
+        return
+    if mode == "one":
+        run_single()
+        return
+
+    if mode == "many":
+        inputs = collect_input_files(first_prompt)
+    else:
+        inputs = collect_directory_files_interactive(extensions or {".pdf"})
+    if not inputs:
+        _console.print("[yellow]Nothing changed — no files selected.[/yellow]")
+        return
+
+    params = collect_params()
+    if params is None:
+        return
+    if not questionary.confirm(
+        confirm_message(len(inputs), params), default=True
+    ).ask():
+        return
+
+    print_summary(run_per_file(operation, inputs, make_process(params)))
 
 
 def print_summary(outcomes: list[BatchOutcome]) -> None:
