@@ -7,6 +7,7 @@ from pdf_tool.backends.pikepdf_backend import (
     PdfInfo,
     PikepdfBackend,
     WatermarkOptions,
+    _page_stamp_geometry,
 )
 from pdf_tool.core.error_translator import BackendError, PikepdfFailure
 
@@ -168,6 +169,51 @@ def test_set_metadata_persists_title(sample_pdf, tmp_path):
     PikepdfBackend().set_metadata(sample_pdf, out, fields={"Title": "My Report"})
     info = PikepdfBackend().inspect(out)
     assert info.metadata.get("Title") == "My Report"
+
+
+def test_stamp_geometry_uses_page_box_and_origin():
+    (w, h), rect = _page_stamp_geometry([100, 200, 700, 1000])
+    assert (w, h) == (600.0, 800.0)
+    assert rect == (100.0, 200.0, 700.0, 1000.0)
+
+
+def _page_content_bytes(page):
+    c = page.obj.Contents
+    if isinstance(c, pikepdf.Array):
+        return b"\n".join(s.read_bytes() for s in c)
+    return c.read_bytes()
+
+
+def test_watermark_places_overlay_at_visible_origin_of_offset_page(tmp_path):
+    src = pikepdf.new()
+    pg = src.add_blank_page(page_size=(400, 400))
+    pg.mediabox = [100, 100, 500, 500]
+    src.save(tmp_path / "off.pdf")
+    out = PikepdfBackend().watermark(
+        tmp_path / "off.pdf",
+        tmp_path / "wm.pdf",
+        WatermarkOptions(text="DRAFT", pages=[1]),
+    )
+    with pikepdf.open(out) as pdf:
+        data = _page_content_bytes(pdf.pages[0])
+    # Overlay translated to the page's lower-left origin, not (0,0) off-page.
+    assert b"100 100 cm" in data
+
+
+def test_watermark_handles_mixed_page_sizes(tmp_path):
+    src = pikepdf.new()
+    src.add_blank_page(page_size=(200, 200))
+    src.add_blank_page(page_size=(600, 800))
+    src.save(tmp_path / "mixed.pdf")
+    out = PikepdfBackend().watermark(
+        tmp_path / "mixed.pdf",
+        tmp_path / "wm.pdf",
+        WatermarkOptions(text="DRAFT", pages=[1, 2]),
+    )
+    with pikepdf.open(out) as pdf:
+        assert len(pdf.pages) == 2
+        for page in pdf.pages:
+            assert "/XObject" in page.Resources
 
 
 def test_watermark_preserves_page_count(sample_pdf, tmp_path):

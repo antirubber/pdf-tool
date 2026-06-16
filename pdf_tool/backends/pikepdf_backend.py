@@ -25,6 +25,19 @@ def _max_pdf_version(versions: Iterable[str]) -> str:
     return max(versions, key=key)
 
 
+def _page_stamp_geometry(
+    mediabox: Iterable[object],
+) -> tuple[tuple[float, float], tuple[float, float, float, float]]:
+    """Return ((width, height), (x0, y0, x1, y1)) from a page's own mediabox.
+
+    Sizing each stamp to the page's box and overlaying at its lower-left
+    origin keeps the watermark centred and on-page for mixed-size documents
+    and pages whose mediabox origin is not (0, 0).
+    """
+    x0, y0, x1, y1 = (float(v) for v in mediabox)
+    return (x1 - x0, y1 - y0), (x0, y0, x1, y1)
+
+
 def _translates(method: Callable[_P, _R]) -> Callable[_P, _R]:
     """Convert pikepdf and OS exceptions into a BackendError(PikepdfFailure).
 
@@ -206,43 +219,39 @@ class PikepdfBackend:
         from pikepdf import Matrix, Name, Page, Rectangle
         from pikepdf.canvas import Canvas, Color, Helvetica, Text
 
+        target_pages = set(options.pages)
         with pikepdf.open(input_path) as pdf:
-            page_size = (612.0, 792.0)
-            if pdf.pages:
-                box = pdf.pages[0].mediabox
-                page_size = (float(box[2] - box[0]), float(box[3] - box[1]))
-
-            canvas = Canvas(page_size=page_size)
-            canvas.add_font(Name("/PdfToolHelv"), Helvetica())
-            with canvas.do.save_state():
-                canvas.do.fill_color(
-                    Color(options.gray, options.gray, options.gray, options.opacity)
-                )
-                cx, cy = page_size[0] / 2, page_size[1] / 2
-                transform = (
-                    Matrix.identity()
-                    .rotated(options.angle_degrees)
-                    .translated(cx, cy)
-                )
-                canvas.do.cm(transform)
-                text = Text()
-                text.font("/PdfToolHelv", options.font_size)
-                # Rough horizontal centring: estimate char width ≈ 0.5 * font_size
-                text.text_transform(
-                    Matrix.identity().translated(
-                        -0.25 * options.font_size * len(options.text), 0.0
-                    )
-                )
-                text.show(options.text)
-                canvas.do.draw_text(text)
-            stamp_pdf = canvas.to_pdf()
-
-            target_pages = set(options.pages)
-            stamp_page = Page(stamp_pdf.pages[0])
-            rect = Rectangle(0, 0, page_size[0], page_size[1])
             for i, page in enumerate(pdf.pages, start=1):
-                if i in target_pages:
-                    Page(page).add_overlay(stamp_page, rect)
+                if i not in target_pages:
+                    continue
+                (width, height), rect = _page_stamp_geometry(page.mediabox)
+
+                canvas = Canvas(page_size=(width, height))
+                canvas.add_font(Name("/PdfToolHelv"), Helvetica())
+                with canvas.do.save_state():
+                    canvas.do.fill_color(
+                        Color(
+                            options.gray, options.gray, options.gray, options.opacity
+                        )
+                    )
+                    transform = (
+                        Matrix.identity()
+                        .rotated(options.angle_degrees)
+                        .translated(width / 2, height / 2)
+                    )
+                    canvas.do.cm(transform)
+                    text = Text()
+                    text.font("/PdfToolHelv", options.font_size)
+                    # Rough horizontal centring: char width ≈ 0.5 * font_size
+                    text.text_transform(
+                        Matrix.identity().translated(
+                            -0.25 * options.font_size * len(options.text), 0.0
+                        )
+                    )
+                    text.show(options.text)
+                    canvas.do.draw_text(text)
+                stamp_pdf = canvas.to_pdf()
+                Page(page).add_overlay(Page(stamp_pdf.pages[0]), Rectangle(*rect))
             pdf.save(output_path)
         return output_path
 
