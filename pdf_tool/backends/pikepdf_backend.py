@@ -213,6 +213,17 @@ class PikepdfBackend:
         return output_path
 
     @_translates
+    def reorder_pages(
+        self, input_path: Path, output_path: Path, *, order: list[int]
+    ) -> Path:
+        with pikepdf.open(input_path) as src:
+            dst = pikepdf.new()
+            for page_num in order:
+                dst.pages.append(src.pages[page_num - 1])
+            dst.save(output_path, min_version=src.pdf_version)
+        return output_path
+
+    @_translates
     def remove_pages(
         self, input_path: Path, output_path: Path, *, pages: list[int]
     ) -> Path:

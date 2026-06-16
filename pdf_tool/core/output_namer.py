@@ -11,6 +11,7 @@ _SUFFIX_BY_OPERATION = {
     "repair": "repaired",
     "merge": "merged",
     "remove": "trimmed",
+    "reorder": "reordered",
 }
 
 _DIRECTORY_SUFFIX_BY_OPERATION = {

@@ -153,6 +153,19 @@ def test_extract_pages_into_one(make_pdf, tmp_path):
         assert len(pdf.pages) == 3
 
 
+def test_reorder_pages_writes_pages_in_the_given_order(tmp_path):
+    src = pikepdf.new()
+    for w in (100, 200, 300):
+        src.add_blank_page(page_size=(w, 100))
+    src.save(tmp_path / "src.pdf")
+    out = PikepdfBackend().reorder_pages(
+        tmp_path / "src.pdf", tmp_path / "out.pdf", order=[3, 1, 2]
+    )
+    with pikepdf.open(out) as pdf:
+        widths = [float(p.mediabox[2]) - float(p.mediabox[0]) for p in pdf.pages]
+    assert widths == [300, 100, 200]
+
+
 def test_remove_pages_keeps_the_unselected_pages(make_pdf, tmp_path):
     src = make_pdf("src.pdf", n_pages=5)
     out = PikepdfBackend().remove_pages(src, tmp_path / "trim.pdf", pages=[2, 4])
