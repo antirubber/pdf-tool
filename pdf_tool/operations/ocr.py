@@ -2,7 +2,6 @@ import questionary
 from rich.console import Console
 
 from pdf_tool.backends.ocrmypdf_backend import OcrmypdfBackend, OcrOptions
-from pdf_tool.core.error_translator import BackendError, translate
 from pdf_tool.core.output_namer import derive_output, ensure_unique
 from pdf_tool.widgets.file_input import prompt_input_file
 from pdf_tool.widgets.output_path import prompt_output_path
@@ -44,13 +43,7 @@ def run() -> None:
     if output is None:
         return
 
-    try:
-        OcrmypdfBackend().add_text_layer(
-            input_path, output, OcrOptions(language=language, force=force)
-        )
-    except BackendError as e:
-        friendly = translate("ocr", e.failure)
-        _console.print(f"[red]{friendly.message}[/red]")
-        return
-
+    OcrmypdfBackend().add_text_layer(
+        input_path, output, OcrOptions(language=language, force=force)
+    )
     _console.print(f"[green]Wrote {output}[/green]")

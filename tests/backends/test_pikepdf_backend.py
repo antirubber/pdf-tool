@@ -206,3 +206,30 @@ def test_try_repair_handles_trailing_garbage(sample_pdf, tmp_path):
     PikepdfBackend().try_repair(damaged, out)
     with pikepdf.open(out) as pdf:
         assert len(pdf.pages) == 3
+
+
+def test_corrupt_pdf_is_translated_to_backend_error(tmp_path):
+    bad = tmp_path / "bad.pdf"
+    bad.write_bytes(b"this is not a pdf at all\n")
+    with pytest.raises(BackendError) as exc_info:
+        PikepdfBackend().try_repair(bad, tmp_path / "out.pdf")
+    failure = exc_info.value.failure
+    assert isinstance(failure, PikepdfFailure)
+    assert failure.exception_name == "PdfError"
+    # The original exception is chained so --debug can show the real traceback.
+    assert exc_info.value.__cause__ is not None
+
+
+def test_inspect_corrupt_pdf_is_translated_to_backend_error(tmp_path):
+    bad = tmp_path / "bad.pdf"
+    bad.write_bytes(b"this is not a pdf at all\n")
+    with pytest.raises(BackendError):
+        PikepdfBackend().inspect(bad)
+
+
+def test_saving_over_the_input_is_translated_to_backend_error(sample_pdf):
+    with pytest.raises(BackendError) as exc_info:
+        PikepdfBackend().encrypt(sample_pdf, sample_pdf, EncryptOptions(password="x"))
+    failure = exc_info.value.failure
+    assert isinstance(failure, PikepdfFailure)
+    assert failure.exception_name == "ValueError"

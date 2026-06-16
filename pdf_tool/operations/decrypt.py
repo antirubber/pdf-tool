@@ -2,7 +2,6 @@ import questionary
 from rich.console import Console
 
 from pdf_tool.backends.pikepdf_backend import DecryptOptions, PikepdfBackend
-from pdf_tool.core.error_translator import BackendError, translate
 from pdf_tool.core.output_namer import derive_output, ensure_unique
 from pdf_tool.widgets.file_input import prompt_input_file
 from pdf_tool.widgets.output_path import prompt_output_path
@@ -26,11 +25,5 @@ def run() -> None:
     if output is None:
         return
 
-    try:
-        PikepdfBackend().decrypt(input_path, output, DecryptOptions(password=password))
-    except BackendError as e:
-        friendly = translate("decrypt", e.failure)
-        _console.print(f"[red]{friendly.message}[/red]")
-        return
-
+    PikepdfBackend().decrypt(input_path, output, DecryptOptions(password=password))
     _console.print(f"[green]Wrote {output}[/green]")

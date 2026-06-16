@@ -2,7 +2,6 @@ import questionary
 from rich.console import Console
 
 from pdf_tool.backends.pikepdf_backend import PikepdfBackend
-from pdf_tool.core.error_translator import BackendError, translate
 from pdf_tool.core.output_namer import derive_output, ensure_unique
 from pdf_tool.core.page_selection import resolve
 from pdf_tool.core.range_parser import RangeParseError, parse_range
@@ -54,63 +53,57 @@ def run() -> None:
     if mode is None:
         return
 
-    try:
-        if mode == "every_page":
-            out_dir = prompt_output_dir(
-                ensure_unique(derive_output(input_path, "split")),
-                hint="e.g. pages/",
-            )
-            if out_dir is None:
-                return
-            outputs = backend.split_every_page(input_path, out_dir)
-            _console.print(f"[green]Wrote {len(outputs)} files to {out_dir}[/green]")
-        elif mode == "every_n":
-            raw = questionary.text(
-                "Split every how many pages?", validate=_validate_positive_int
-            ).ask()
-            if raw is None:
-                return
-            out_dir = prompt_output_dir(
-                ensure_unique(derive_output(input_path, "split")),
-                hint="e.g. chunks/",
-            )
-            if out_dir is None:
-                return
-            outputs = backend.split_every_n(input_path, out_dir, n=int(raw))
-            _console.print(f"[green]Wrote {len(outputs)} files to {out_dir}[/green]")
-        elif mode == "boundaries":
-            raw = questionary.text(
-                f"Page boundaries (1..{n_pages}, e.g. 5,12,20):",
-                validate=_validate_boundaries(n_pages),
-            ).ask()
-            if raw is None:
-                return
-            boundaries = parse_range(raw, n_pages=n_pages)
-            out_dir = prompt_output_dir(
-                ensure_unique(derive_output(input_path, "split")),
-                hint="e.g. sections/",
-            )
-            if out_dir is None:
-                return
-            outputs = backend.split_at_boundaries(
-                input_path, out_dir, boundaries=boundaries
-            )
-            _console.print(f"[green]Wrote {len(outputs)} files to {out_dir}[/green]")
-        else:  # extract
-            selection = prompt_page_selection(n_pages)
-            if selection is None:
-                return
-            pages = resolve(selection, n_pages=n_pages)
-            output = prompt_output_path(
-                ensure_unique(
-                    input_path.with_stem(f"{input_path.stem}-extracted")
-                ),
-                hint="e.g. extracted.pdf",
-            )
-            if output is None:
-                return
-            backend.extract_pages(input_path, output, pages=pages)
-            _console.print(f"[green]Wrote {output}[/green]")
-    except BackendError as e:
-        friendly = translate("split", e.failure)
-        _console.print(f"[red]{friendly.message}[/red]")
+    if mode == "every_page":
+        out_dir = prompt_output_dir(
+            ensure_unique(derive_output(input_path, "split")),
+            hint="e.g. pages/",
+        )
+        if out_dir is None:
+            return
+        outputs = backend.split_every_page(input_path, out_dir)
+        _console.print(f"[green]Wrote {len(outputs)} files to {out_dir}[/green]")
+    elif mode == "every_n":
+        raw = questionary.text(
+            "Split every how many pages?", validate=_validate_positive_int
+        ).ask()
+        if raw is None:
+            return
+        out_dir = prompt_output_dir(
+            ensure_unique(derive_output(input_path, "split")),
+            hint="e.g. chunks/",
+        )
+        if out_dir is None:
+            return
+        outputs = backend.split_every_n(input_path, out_dir, n=int(raw))
+        _console.print(f"[green]Wrote {len(outputs)} files to {out_dir}[/green]")
+    elif mode == "boundaries":
+        raw = questionary.text(
+            f"Page boundaries (1..{n_pages}, e.g. 5,12,20):",
+            validate=_validate_boundaries(n_pages),
+        ).ask()
+        if raw is None:
+            return
+        boundaries = parse_range(raw, n_pages=n_pages)
+        out_dir = prompt_output_dir(
+            ensure_unique(derive_output(input_path, "split")),
+            hint="e.g. sections/",
+        )
+        if out_dir is None:
+            return
+        outputs = backend.split_at_boundaries(
+            input_path, out_dir, boundaries=boundaries
+        )
+        _console.print(f"[green]Wrote {len(outputs)} files to {out_dir}[/green]")
+    else:  # extract
+        selection = prompt_page_selection(n_pages)
+        if selection is None:
+            return
+        pages = resolve(selection, n_pages=n_pages)
+        output = prompt_output_path(
+            ensure_unique(input_path.with_stem(f"{input_path.stem}-extracted")),
+            hint="e.g. extracted.pdf",
+        )
+        if output is None:
+            return
+        backend.extract_pages(input_path, output, pages=pages)
+        _console.print(f"[green]Wrote {output}[/green]")

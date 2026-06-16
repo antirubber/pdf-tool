@@ -2,7 +2,6 @@ import questionary
 from rich.console import Console
 
 from pdf_tool.backends.pikepdf_backend import PikepdfBackend
-from pdf_tool.core.error_translator import BackendError, translate
 from pdf_tool.core.output_namer import derive_output, ensure_unique
 from pdf_tool.core.page_selection import resolve
 from pdf_tool.widgets.file_input import prompt_input_file
@@ -46,11 +45,5 @@ def run() -> None:
     if output is None:
         return
 
-    try:
-        backend.rotate(input_path, output, pages=pages, degrees=int(angle_choice))
-    except BackendError as e:
-        friendly = translate("rotate", e.failure)
-        _console.print(f"[red]{friendly.message}[/red]")
-        return
-
+    backend.rotate(input_path, output, pages=pages, degrees=int(angle_choice))
     _console.print(f"[green]Wrote {output}[/green]")

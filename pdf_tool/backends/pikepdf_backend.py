@@ -1,9 +1,38 @@
+import functools
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import ParamSpec, TypeVar
 
 import pikepdf
 
 from pdf_tool.core.error_translator import BackendError, PikepdfFailure
+
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
+
+
+def _translates(method: Callable[_P, _R]) -> Callable[_P, _R]:
+    """Convert pikepdf and OS exceptions into a BackendError(PikepdfFailure).
+
+    A single seam at the Backend boundary so every pikepdf Operation surfaces a
+    Friendly-path message in default mode and a full traceback only under
+    --debug (the original exception is chained via ``from``). BackendError that
+    a method raised deliberately passes through untouched.
+    """
+
+    @functools.wraps(method)
+    def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        try:
+            return method(*args, **kwargs)
+        except BackendError:
+            raise
+        except pikepdf.PasswordError as e:
+            raise BackendError(PikepdfFailure("PasswordError", str(e))) from e
+        except (pikepdf.PdfError, ValueError, OSError) as e:
+            raise BackendError(PikepdfFailure(type(e).__name__, str(e))) from e
+
+    return wrapper
 
 
 @dataclass(frozen=True)
@@ -47,6 +76,7 @@ class PdfInfo:
 
 
 class PikepdfBackend:
+    @_translates
     def encrypt(
         self, input_path: Path, output_path: Path, options: EncryptOptions
     ) -> Path:
@@ -60,19 +90,15 @@ class PikepdfBackend:
             )
         return output_path
 
+    @_translates
     def decrypt(
         self, input_path: Path, output_path: Path, options: DecryptOptions
     ) -> Path:
-        try:
-            pdf = pikepdf.open(input_path, password=options.password)
-        except pikepdf.PasswordError as e:
-            raise BackendError(
-                PikepdfFailure(exception_name="PasswordError", message=str(e))
-            ) from e
-        with pdf:
+        with pikepdf.open(input_path, password=options.password) as pdf:
             pdf.save(output_path)
         return output_path
 
+    @_translates
     def rotate(
         self,
         input_path: Path,
@@ -87,6 +113,7 @@ class PikepdfBackend:
             pdf.save(output_path)
         return output_path
 
+    @_translates
     def split_every_page(self, input_path: Path, output_dir: Path) -> list[Path]:
         output_dir.mkdir(parents=True, exist_ok=True)
         outputs: list[Path] = []
@@ -100,6 +127,7 @@ class PikepdfBackend:
                 outputs.append(out_path)
         return outputs
 
+    @_translates
     def split_every_n(
         self, input_path: Path, output_dir: Path, *, n: int
     ) -> list[Path]:
@@ -122,6 +150,7 @@ class PikepdfBackend:
                 outputs.append(out_path)
         return outputs
 
+    @_translates
     def split_at_boundaries(
         self, input_path: Path, output_dir: Path, *, boundaries: list[int]
     ) -> list[Path]:
@@ -146,6 +175,7 @@ class PikepdfBackend:
                 outputs.append(out_path)
         return outputs
 
+    @_translates
     def extract_pages(
         self, input_path: Path, output_path: Path, *, pages: list[int]
     ) -> Path:
@@ -156,6 +186,7 @@ class PikepdfBackend:
             dst.save(output_path)
         return output_path
 
+    @_translates
     def watermark(
         self, input_path: Path, output_path: Path, options: WatermarkOptions
     ) -> Path:
@@ -202,6 +233,7 @@ class PikepdfBackend:
             pdf.save(output_path)
         return output_path
 
+    @_translates
     def set_metadata(
         self, input_path: Path, output_path: Path, *, fields: dict[str, str]
     ) -> Path:
@@ -212,6 +244,7 @@ class PikepdfBackend:
             pdf.save(output_path)
         return output_path
 
+    @_translates
     def strip_metadata(self, input_path: Path, output_path: Path) -> Path:
         with pikepdf.open(input_path) as pdf:
             for key in list(pdf.docinfo.keys()):
@@ -222,11 +255,13 @@ class PikepdfBackend:
             pdf.save(output_path)
         return output_path
 
+    @_translates
     def try_repair(self, input_path: Path, output_path: Path) -> Path:
         with pikepdf.open(input_path, attempt_recovery=True) as pdf:
             pdf.save(output_path)
         return output_path
 
+    @_translates
     def merge(self, input_paths: list[Path], output_path: Path) -> Path:
         dst = pikepdf.new()
         opened: list = []
@@ -242,6 +277,7 @@ class PikepdfBackend:
                 src.close()
         return output_path
 
+    @_translates
     def inspect(self, input_path: Path) -> "PdfInfo":
         try:
             pdf = pikepdf.open(input_path)

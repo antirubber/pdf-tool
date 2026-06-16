@@ -4,7 +4,6 @@ import questionary
 from rich.console import Console
 
 from pdf_tool.backends.ghostscript_backend import CompressOptions, GhostscriptBackend
-from pdf_tool.core.error_translator import BackendError, translate
 from pdf_tool.core.output_namer import derive_output, ensure_unique
 from pdf_tool.widgets.batch import (
     collect_directory_files_interactive,
@@ -59,11 +58,7 @@ def _run_one() -> None:
     if output is None:
         return
 
-    try:
-        GhostscriptBackend().compress(input_path, output, CompressOptions(preset=preset))
-    except BackendError as e:
-        _console.print(f"[red]{translate('compress', e.failure).message}[/red]")
-        return
+    GhostscriptBackend().compress(input_path, output, CompressOptions(preset=preset))
 
     before = input_path.stat().st_size
     after = output.stat().st_size

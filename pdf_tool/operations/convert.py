@@ -11,7 +11,6 @@ from pdf_tool.backends.poppler_backend import (
     PdftoppmBackend,
     PdftotextBackend,
 )
-from pdf_tool.core.error_translator import BackendError, translate
 from pdf_tool.core.output_namer import derive_output, ensure_unique
 from pdf_tool.widgets.batch import (
     collect_directory_files_interactive,
@@ -48,13 +47,9 @@ def _convert_office_to_pdf_one(input_path: Path) -> None:
     )
     if output is None:
         return
-    try:
-        LibreOfficeBackend().convert(
-            input_path, output, ConvertOptions(target_format="pdf")
-        )
-    except BackendError as e:
-        _console.print(f"[red]{translate('convert', e.failure).message}[/red]")
-        return
+    LibreOfficeBackend().convert(
+        input_path, output, ConvertOptions(target_format="pdf")
+    )
     _console.print(f"[green]Wrote {output}[/green]")
 
 
@@ -91,44 +86,41 @@ def _convert_pdf(input_path: Path) -> None:
     if target is None:
         return
 
-    try:
-        if target in ("docx", "odt", "xlsx", "pptx"):
-            output = prompt_output_path(
-                ensure_unique(
-                    derive_output(input_path, "convert", target_format=target)
-                ),
-                hint=f"e.g. output.{target}",
-            )
-            if output is None:
-                return
-            LibreOfficeBackend().convert(
-                input_path, output, ConvertOptions(target_format=target)
-            )
-            _console.print(f"[green]Wrote {output}[/green]")
-        elif target in ("png", "jpeg"):
-            output_dir = prompt_output_dir(
-                ensure_unique(
-                    derive_output(input_path, "convert", target_format=target)
-                ),
-                hint="e.g. pages/",
-            )
-            if output_dir is None:
-                return
-            PdftoppmBackend().pdf_to_images(
-                input_path, output_dir, PdfToImagesOptions(image_format=target)
-            )
-            _console.print(f"[green]Wrote images to {output_dir}[/green]")
-        else:  # txt
-            output = prompt_output_path(
-                ensure_unique(input_path.with_suffix(".txt")),
-                hint="e.g. content.txt",
-            )
-            if output is None:
-                return
-            PdftotextBackend().pdf_to_text(input_path, output, PdfToTextOptions())
-            _console.print(f"[green]Wrote {output}[/green]")
-    except BackendError as e:
-        _console.print(f"[red]{translate('convert', e.failure).message}[/red]")
+    if target in ("docx", "odt", "xlsx", "pptx"):
+        output = prompt_output_path(
+            ensure_unique(
+                derive_output(input_path, "convert", target_format=target)
+            ),
+            hint=f"e.g. output.{target}",
+        )
+        if output is None:
+            return
+        LibreOfficeBackend().convert(
+            input_path, output, ConvertOptions(target_format=target)
+        )
+        _console.print(f"[green]Wrote {output}[/green]")
+    elif target in ("png", "jpeg"):
+        output_dir = prompt_output_dir(
+            ensure_unique(
+                derive_output(input_path, "convert", target_format=target)
+            ),
+            hint="e.g. pages/",
+        )
+        if output_dir is None:
+            return
+        PdftoppmBackend().pdf_to_images(
+            input_path, output_dir, PdfToImagesOptions(image_format=target)
+        )
+        _console.print(f"[green]Wrote images to {output_dir}[/green]")
+    else:  # txt
+        output = prompt_output_path(
+            ensure_unique(input_path.with_suffix(".txt")),
+            hint="e.g. content.txt",
+        )
+        if output is None:
+            return
+        PdftotextBackend().pdf_to_text(input_path, output, PdfToTextOptions())
+        _console.print(f"[green]Wrote {output}[/green]")
 
 
 def _convert_images_to_pdf_one(first_image: Path) -> None:
@@ -149,11 +141,7 @@ def _convert_images_to_pdf_one(first_image: Path) -> None:
     if output is None:
         return
 
-    try:
-        Img2pdfBackend().images_to_pdf(paths, output)
-    except BackendError as e:
-        _console.print(f"[red]{translate('convert', e.failure).message}[/red]")
-        return
+    Img2pdfBackend().images_to_pdf(paths, output)
     _console.print(f"[green]Wrote {output}[/green]")
 
 
@@ -168,11 +156,7 @@ def _convert_images_to_pdf_batch(inputs: list[Path]) -> None:
     )
     if output is None:
         return
-    try:
-        Img2pdfBackend().images_to_pdf(inputs, output)
-    except BackendError as e:
-        _console.print(f"[red]{translate('convert', e.failure).message}[/red]")
-        return
+    Img2pdfBackend().images_to_pdf(inputs, output)
     _console.print(f"[green]Wrote {output}[/green]")
 
 

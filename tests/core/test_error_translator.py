@@ -18,6 +18,20 @@ def test_unknown_pikepdf_failure_falls_back_to_generic():
     assert "--debug" in friendly.message
 
 
+def test_output_equals_input_translates_to_friendly():
+    failure = PikepdfFailure(
+        exception_name="ValueError",
+        message=(
+            "Cannot overwrite input file. Open the file with "
+            "pikepdf.open(..., allow_overwriting_input=True) to allow "
+            "overwriting the input file."
+        ),
+    )
+    friendly = translate("encrypt", failure)
+    assert "same" in friendly.message.lower()
+    assert friendly.suggested_action is not None
+
+
 def test_missing_binary_subprocess_failure_translates():
     failure = SubprocessFailure(
         binary="img2pdf",

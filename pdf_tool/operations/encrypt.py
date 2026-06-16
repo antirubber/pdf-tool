@@ -5,7 +5,6 @@ import questionary
 from rich.console import Console
 
 from pdf_tool.backends.pikepdf_backend import EncryptOptions, PikepdfBackend
-from pdf_tool.core.error_translator import BackendError, translate
 from pdf_tool.core.output_namer import derive_output, ensure_unique
 from pdf_tool.widgets.batch import (
     collect_directory_files_interactive,
@@ -86,11 +85,7 @@ def _run_one() -> None:
     if output is None:
         return
 
-    try:
-        PikepdfBackend().encrypt(input_path, output, options)
-    except BackendError as e:
-        _console.print(f"[red]{translate('encrypt', e.failure).message}[/red]")
-        return
+    PikepdfBackend().encrypt(input_path, output, options)
     _console.print(f"[green]Wrote {output}[/green]")
 
 

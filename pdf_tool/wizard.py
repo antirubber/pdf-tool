@@ -50,6 +50,22 @@ _OPERATIONS: tuple[MenuEntry, ...] = (
 )
 
 
+def _dispatch(entry: MenuEntry, *, debug: bool) -> None:
+    """Run an Operation, translating any BackendError to the Friendly path.
+
+    This is the single place that decides Friendly vs Debug for a one-shot run:
+    under --debug the BackendError (with its chained cause) propagates so the
+    real traceback is shown; otherwise a plain-English message is printed.
+    """
+    try:
+        entry.handler()
+    except BackendError as e:
+        if debug:
+            raise
+        friendly = translate(entry.value, e.failure)
+        _console.print(f"[red]{friendly.message}[/red]")
+
+
 def run(*, debug: bool = False) -> None:
     availability = probe()
     _console.print(build_header(__version__))
@@ -59,11 +75,5 @@ def run(*, debug: bool = False) -> None:
     ).ask()
     if choice is None:
         return
-    handler = next(e.handler for e in _OPERATIONS if e.value == choice)
-    try:
-        handler()
-    except BackendError as e:
-        if debug:
-            raise
-        friendly = translate("operation", e.failure)
-        _console.print(f"[red]{friendly.message}[/red]")
+    entry = next(e for e in _OPERATIONS if e.value == choice)
+    _dispatch(entry, debug=debug)

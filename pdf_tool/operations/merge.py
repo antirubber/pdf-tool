@@ -3,7 +3,6 @@ from rich.console import Console
 from rich.table import Table
 
 from pdf_tool.backends.pikepdf_backend import PikepdfBackend
-from pdf_tool.core.error_translator import BackendError, translate
 from pdf_tool.core.output_namer import derive_output, ensure_unique
 from pdf_tool.widgets.file_input import prompt_input_file
 from pdf_tool.widgets.output_path import prompt_output_path
@@ -88,11 +87,5 @@ def run() -> None:
     if output is None:
         return
 
-    try:
-        PikepdfBackend().merge(final_order, output)
-    except BackendError as e:
-        friendly = translate("merge", e.failure)
-        _console.print(f"[red]{friendly.message}[/red]")
-        return
-
+    PikepdfBackend().merge(final_order, output)
     _console.print(f"[green]Wrote {output}[/green]")

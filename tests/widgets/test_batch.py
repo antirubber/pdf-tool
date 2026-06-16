@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from pdf_tool.widgets.batch import collect_directory_files
+from pdf_tool.widgets.batch import collect_directory_files, run_per_file
 
 
 @pytest.fixture
@@ -67,3 +67,24 @@ class TestCollectDirectoryFilesRecursive:
         result = collect_directory_files(nested_dir, image_exts, recursive=True)
         names = sorted(p.name for p in result)
         assert names == ["photo.png", "scan.tiff"]
+
+
+def test_run_per_file_isolates_one_bad_file(make_pdf, tmp_path: Path):
+    """One corrupt input yields a single FAIL row; the run completes."""
+    from pdf_tool.backends.pikepdf_backend import EncryptOptions, PikepdfBackend
+
+    good = make_pdf("good.pdf")
+    bad = tmp_path / "bad.pdf"
+    bad.write_bytes(b"this is not a pdf at all\n")
+
+    backend = PikepdfBackend()
+
+    def process(path: Path) -> Path:
+        return backend.encrypt(
+            path, tmp_path / f"{path.stem}-out.pdf", EncryptOptions(password="x")
+        )
+
+    outcomes = run_per_file("encrypt", [good, bad], process)
+    assert len(outcomes) == 2
+    assert outcomes[0].succeeded is True
+    assert outcomes[1].succeeded is False

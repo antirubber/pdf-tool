@@ -2,7 +2,6 @@ import questionary
 from rich.console import Console
 
 from pdf_tool.backends.pikepdf_backend import PikepdfBackend, WatermarkOptions
-from pdf_tool.core.error_translator import BackendError, translate
 from pdf_tool.core.output_namer import derive_output, ensure_unique
 from pdf_tool.core.page_selection import All, resolve
 from pdf_tool.widgets.file_input import prompt_input_file
@@ -53,13 +52,5 @@ def run() -> None:
     if output is None:
         return
 
-    try:
-        backend.watermark(
-            input_path, output, WatermarkOptions(text=text, pages=pages)
-        )
-    except BackendError as e:
-        friendly = translate("watermark", e.failure)
-        _console.print(f"[red]{friendly.message}[/red]")
-        return
-
+    backend.watermark(input_path, output, WatermarkOptions(text=text, pages=pages))
     _console.print(f"[green]Wrote {output}[/green]")
