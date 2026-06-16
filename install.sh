@@ -129,6 +129,15 @@ resolve_ref() {
     ref="${ref#*:}"              # drop up to the colon
     ref="${ref#*\"}"            # drop up to the opening quote of the value
     ref="${ref%%\"*}"          # keep up to the closing quote
+
+    # Strict allowlist before the ref is ever interpolated into an install
+    # command: a tag is only safe if it is v?X.Y.Z-style with no shell
+    # metacharacters. A malformed or hostile tag (repo/account compromise, or
+    # a broken release) falls back to the no-ref master path rather than being
+    # re-parsed as shell.
+    case "$ref" in
+        "" | *[!0-9A-Za-z._-]*) return 0 ;;
+    esac
     printf '%s\n' "$ref"
 }
 

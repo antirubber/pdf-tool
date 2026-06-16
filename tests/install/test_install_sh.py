@@ -126,6 +126,20 @@ def test_installs_latest_release_tag_when_one_exists(run_install):
     )
 
 
+def test_metacharacter_tag_is_refused_and_falls_back_to_master(run_install):
+    result = run_install(
+        os_name="Darwin",
+        present=("uv", "curl", *ALL_DEPS),
+        stub_bodies={"curl": "echo '{\"tag_name\": \"v0.1.0; rm -rf ~\"}'"},
+    )
+    runs = result.of_kind("RUN")
+    # The hostile tag must never be interpolated into the install command.
+    assert not any("rm -rf" in cmd for cmd in runs), result.stdout
+    # It falls back to the bare repo (no @tag).
+    assert any("uv tool install" in cmd for cmd in runs), result.stdout
+    assert not any("@v0.1.0" in cmd for cmd in runs), result.stdout
+
+
 def test_falls_back_to_master_when_no_release(run_install):
     # curl present but the API returns nothing → install the bare repo, no @tag.
     result = run_install(
