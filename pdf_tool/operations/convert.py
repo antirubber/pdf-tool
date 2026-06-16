@@ -102,7 +102,8 @@ def _convert_pdf(input_path: Path) -> None:
     elif target in ("png", "jpeg"):
         output_dir = prompt_output_dir(
             ensure_unique(
-                derive_output(input_path, "convert", target_format=target)
+                derive_output(input_path, "convert", target_format=target),
+                as_directory=True,
             ),
             hint="e.g. pages/",
         )

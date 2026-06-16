@@ -110,3 +110,19 @@ def test_ensure_unique_works_for_directory_paths():
     assert ensure_unique(candidate, exists=taken.__contains__) == Path(
         "/work/foo-pages-2"
     )
+
+
+def test_ensure_unique_dotted_directory_appends_counter_to_full_name():
+    candidate = Path("/work/report.v2-pages")
+    taken = {candidate}
+    assert ensure_unique(
+        candidate, exists=taken.__contains__, as_directory=True
+    ) == Path("/work/report.v2-pages-2")
+
+
+def test_ensure_unique_dotted_file_keeps_stem_based_dedup():
+    candidate = Path("/work/foo.bar.pdf")
+    taken = {candidate}
+    assert ensure_unique(candidate, exists=taken.__contains__) == Path(
+        "/work/foo.bar-2.pdf"
+    )

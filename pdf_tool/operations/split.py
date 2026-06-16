@@ -55,7 +55,7 @@ def run() -> None:
 
     if mode == "every_page":
         out_dir = prompt_output_dir(
-            ensure_unique(derive_output(input_path, "split")),
+            ensure_unique(derive_output(input_path, "split"), as_directory=True),
             hint="e.g. pages/",
         )
         if out_dir is None:
@@ -69,7 +69,7 @@ def run() -> None:
         if raw is None:
             return
         out_dir = prompt_output_dir(
-            ensure_unique(derive_output(input_path, "split")),
+            ensure_unique(derive_output(input_path, "split"), as_directory=True),
             hint="e.g. chunks/",
         )
         if out_dir is None:
@@ -85,7 +85,7 @@ def run() -> None:
             return
         boundaries = parse_range(raw, n_pages=n_pages)
         out_dir = prompt_output_dir(
-            ensure_unique(derive_output(input_path, "split")),
+            ensure_unique(derive_output(input_path, "split"), as_directory=True),
             hint="e.g. sections/",
         )
         if out_dir is None:

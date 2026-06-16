@@ -37,13 +37,22 @@ def derive_output(input_path: Path, operation: str, **opts: object) -> Path:
 
 
 def ensure_unique(
-    candidate: Path, exists: Callable[[Path], bool] = Path.exists
+    candidate: Path,
+    exists: Callable[[Path], bool] = Path.exists,
+    *,
+    as_directory: bool = False,
 ) -> Path:
     if not exists(candidate):
         return candidate
     n = 2
     while True:
-        next_candidate = candidate.with_stem(f"{candidate.stem}-{n}")
+        if as_directory:
+            # A directory name may contain dots from the source filename
+            # (report.v2-pages); the counter belongs on the whole name, not
+            # spliced before a spurious ".v2-pages" "extension".
+            next_candidate = candidate.with_name(f"{candidate.name}-{n}")
+        else:
+            next_candidate = candidate.with_stem(f"{candidate.stem}-{n}")
         if not exists(next_candidate):
             return next_candidate
         n += 1
