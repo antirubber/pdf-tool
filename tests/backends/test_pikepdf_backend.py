@@ -208,6 +208,38 @@ def test_try_repair_handles_trailing_garbage(sample_pdf, tmp_path):
         assert len(pdf.pages) == 3
 
 
+def _pdf_with_version(path, version, n_pages=1):
+    pdf = pikepdf.new()
+    for _ in range(n_pages):
+        pdf.add_blank_page(page_size=(72, 72))
+    pdf.save(path, min_version=version)
+    return path
+
+
+def test_merge_carries_forward_highest_source_version(tmp_path):
+    a = _pdf_with_version(tmp_path / "a.pdf", "1.4")
+    b = _pdf_with_version(tmp_path / "b.pdf", "1.7")
+    out = tmp_path / "merged.pdf"
+    PikepdfBackend().merge([a, b], out)
+    with pikepdf.open(out) as pdf:
+        assert pdf.pdf_version >= "1.7"
+
+
+def test_split_carries_forward_source_version(tmp_path):
+    src = _pdf_with_version(tmp_path / "src.pdf", "1.7", n_pages=2)
+    paths = PikepdfBackend().split_every_page(src, tmp_path / "out")
+    with pikepdf.open(paths[0]) as pdf:
+        assert pdf.pdf_version >= "1.7"
+
+
+def test_extract_carries_forward_source_version(tmp_path):
+    src = _pdf_with_version(tmp_path / "src.pdf", "1.7", n_pages=3)
+    out = tmp_path / "ex.pdf"
+    PikepdfBackend().extract_pages(src, out, pages=[1, 3])
+    with pikepdf.open(out) as pdf:
+        assert pdf.pdf_version >= "1.7"
+
+
 def test_corrupt_pdf_is_translated_to_backend_error(tmp_path):
     bad = tmp_path / "bad.pdf"
     bad.write_bytes(b"this is not a pdf at all\n")

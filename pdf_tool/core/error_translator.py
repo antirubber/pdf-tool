@@ -45,6 +45,11 @@ def translate(operation: str, failure: BackendFailure) -> FriendlyError:
                 message=f"{failure.binary} is not installed.",
                 suggested_action=f"Install {failure.binary} to use this operation.",
             )
+        case SubprocessFailure(exit_code=-1, stderr=s) if "timed out" in s:
+            return FriendlyError(
+                message=f"{failure.binary} timed out before it finished.",
+                suggested_action="Try again with a smaller or simpler file.",
+            )
     return FriendlyError(
         message=f"{operation} failed. Rerun with --debug for details."
     )

@@ -32,6 +32,15 @@ def test_output_equals_input_translates_to_friendly():
     assert friendly.suggested_action is not None
 
 
+def test_timeout_subprocess_failure_translates():
+    failure = SubprocessFailure(
+        binary="soffice", exit_code=-1, stderr="timed out after 180.0s"
+    )
+    friendly = translate("convert", failure)
+    assert "timed out" in friendly.message.lower()
+    assert friendly.suggested_action is not None
+
+
 def test_missing_binary_subprocess_failure_translates():
     failure = SubprocessFailure(
         binary="img2pdf",

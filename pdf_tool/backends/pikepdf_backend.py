@@ -1,5 +1,5 @@
 import functools
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import ParamSpec, TypeVar
@@ -10,6 +10,19 @@ from pdf_tool.core.error_translator import BackendError, PikepdfFailure
 
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
+
+
+def _max_pdf_version(versions: Iterable[str]) -> str:
+    """Highest "X.Y" PDF version string, comparing numerically not lexically."""
+
+    def key(v: str) -> tuple[int, int]:
+        major, _, minor = v.partition(".")
+        try:
+            return (int(major), int(minor))
+        except ValueError:
+            return (0, 0)
+
+    return max(versions, key=key)
 
 
 def _translates(method: Callable[_P, _R]) -> Callable[_P, _R]:
@@ -123,7 +136,7 @@ class PikepdfBackend:
                 dst = pikepdf.new()
                 dst.pages.append(page)
                 out_path = output_dir / f"page-{i:0{width}d}.pdf"
-                dst.save(out_path)
+                dst.save(out_path, min_version=src.pdf_version)
                 outputs.append(out_path)
         return outputs
 
@@ -146,7 +159,7 @@ class PikepdfBackend:
                 for i in range(start, end):
                     dst.pages.append(src.pages[i])
                 out_path = output_dir / f"part-{chunk_idx + 1:0{width}d}.pdf"
-                dst.save(out_path)
+                dst.save(out_path, min_version=src.pdf_version)
                 outputs.append(out_path)
         return outputs
 
@@ -171,7 +184,7 @@ class PikepdfBackend:
                 for page_num in range(start, end):
                     dst.pages.append(src.pages[page_num - 1])
                 out_path = output_dir / f"part-{idx + 1:0{width}d}.pdf"
-                dst.save(out_path)
+                dst.save(out_path, min_version=src.pdf_version)
                 outputs.append(out_path)
         return outputs
 
@@ -183,7 +196,7 @@ class PikepdfBackend:
             dst = pikepdf.new()
             for page_num in pages:
                 dst.pages.append(src.pages[page_num - 1])
-            dst.save(output_path)
+            dst.save(output_path, min_version=src.pdf_version)
         return output_path
 
     @_translates
@@ -271,7 +284,10 @@ class PikepdfBackend:
                 opened.append(src)
                 for page in src.pages:
                     dst.pages.append(page)
-            dst.save(output_path)
+            dst.save(
+                output_path,
+                min_version=_max_pdf_version(s.pdf_version for s in opened),
+            )
         finally:
             for src in opened:
                 src.close()
