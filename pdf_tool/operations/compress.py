@@ -6,6 +6,7 @@ from rich.console import Console
 from pdf_tool.backends.ghostscript_backend import CompressOptions, GhostscriptBackend
 from pdf_tool.core.humanize import humanize_bytes
 from pdf_tool.core.output_namer import derive_output, ensure_unique
+from pdf_tool.widgets.progress import spinner
 from pdf_tool.widgets.batch import (
     collect_directory_files_interactive,
     collect_input_files,
@@ -51,7 +52,10 @@ def _run_one() -> None:
     if output is None:
         return
 
-    GhostscriptBackend().compress(input_path, output, CompressOptions(preset=preset))
+    with spinner("Compressing"):
+        GhostscriptBackend().compress(
+            input_path, output, CompressOptions(preset=preset)
+        )
 
     before = input_path.stat().st_size
     after = output.stat().st_size

@@ -8,6 +8,7 @@ from pdf_tool.core.output_namer import derive_output, ensure_unique
 from pdf_tool.widgets.batch import run_one_or_many
 from pdf_tool.widgets.file_input import prompt_input_file
 from pdf_tool.widgets.output_path import prompt_output_path
+from pdf_tool.widgets.progress import spinner
 
 _console = Console()
 
@@ -54,7 +55,8 @@ def _run_one() -> None:
     if output is None:
         return
 
-    OcrmypdfBackend().add_text_layer(input_path, output, options)
+    with spinner("Running OCR"):
+        OcrmypdfBackend().add_text_layer(input_path, output, options)
     _console.print(f"[green]Wrote {output}[/green]")
 
 

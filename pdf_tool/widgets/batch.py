@@ -9,6 +9,7 @@ from rich.table import Table
 from pdf_tool.core.error_translator import BackendError, translate
 from pdf_tool.core.range_parser import RangeParseError
 from pdf_tool.widgets.file_input import prompt_input_directory, prompt_input_file
+from pdf_tool.widgets.progress import spinner
 
 _P = TypeVar("_P")
 
@@ -102,9 +103,9 @@ def run_per_file(
     """
     outcomes: list[BatchOutcome] = []
     for i, path in enumerate(inputs, start=1):
-        _console.print(f"[bold]({i}/{len(inputs)}) {path.name}[/bold]")
         try:
-            out = process(path)
+            with spinner(f"({i}/{len(inputs)}) {path.name}"):
+                out = process(path)
             outcomes.append(
                 BatchOutcome(path=path, succeeded=True, message=f"→ {out}")
             )

@@ -21,6 +21,7 @@ from pdf_tool.widgets.batch import (
 )
 from pdf_tool.widgets.file_input import prompt_input_file
 from pdf_tool.widgets.output_path import prompt_output_dir, prompt_output_path
+from pdf_tool.widgets.progress import spinner
 
 _console = Console()
 
@@ -47,9 +48,10 @@ def _convert_office_to_pdf_one(input_path: Path) -> None:
     )
     if output is None:
         return
-    LibreOfficeBackend().convert(
-        input_path, output, ConvertOptions(target_format="pdf")
-    )
+    with spinner("Converting"):
+        LibreOfficeBackend().convert(
+            input_path, output, ConvertOptions(target_format="pdf")
+        )
     _console.print(f"[green]Wrote {output}[/green]")
 
 
@@ -95,9 +97,10 @@ def _convert_pdf(input_path: Path) -> None:
         )
         if output is None:
             return
-        LibreOfficeBackend().convert(
-            input_path, output, ConvertOptions(target_format=target)
-        )
+        with spinner("Converting"):
+            LibreOfficeBackend().convert(
+                input_path, output, ConvertOptions(target_format=target)
+            )
         _console.print(f"[green]Wrote {output}[/green]")
     elif target in ("png", "jpeg"):
         output_dir = prompt_output_dir(
@@ -109,9 +112,10 @@ def _convert_pdf(input_path: Path) -> None:
         )
         if output_dir is None:
             return
-        PdftoppmBackend().pdf_to_images(
-            input_path, output_dir, PdfToImagesOptions(image_format=target)
-        )
+        with spinner("Rendering pages"):
+            PdftoppmBackend().pdf_to_images(
+                input_path, output_dir, PdfToImagesOptions(image_format=target)
+            )
         _console.print(f"[green]Wrote images to {output_dir}[/green]")
     else:  # txt
         output = prompt_output_path(
