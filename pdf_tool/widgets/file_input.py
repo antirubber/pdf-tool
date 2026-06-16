@@ -1,13 +1,21 @@
 from pathlib import Path
+from urllib.parse import urlparse
+from urllib.request import url2pathname
 
 import questionary
 
 
 def normalize_path(raw: str) -> Path:
-    """Strip drag-and-drop quotes/whitespace, expand ~, return absolute Path."""
+    """Normalise a drag-and-drop path: quotes, ~, file:// URIs, escaped spaces."""
     stripped = raw.strip()
     if len(stripped) >= 2 and stripped[0] == stripped[-1] and stripped[0] in ("'", '"'):
         stripped = stripped[1:-1]
+    if stripped.startswith("file://"):
+        # file:///home/u/a%20b.pdf  ->  /home/u/a b.pdf
+        stripped = url2pathname(urlparse(stripped).path)
+    else:
+        # Shell-style escaped spaces from a dragged path: a\ b.pdf -> a b.pdf
+        stripped = stripped.replace("\\ ", " ")
     return Path(stripped).expanduser()
 
 

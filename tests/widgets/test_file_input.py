@@ -25,6 +25,14 @@ def test_normalize_leaves_internal_quotes_alone():
     assert normalize_path("/tmp/has'quote.pdf") == Path("/tmp/has'quote.pdf")
 
 
+def test_normalize_decodes_file_uri_with_encoded_space():
+    assert normalize_path("file:///home/u/a%20b.pdf") == Path("/home/u/a b.pdf")
+
+
+def test_normalize_unescapes_backslash_spaces():
+    assert normalize_path("/home/u/a\\ b.pdf") == Path("/home/u/a b.pdf")
+
+
 class TestValidateExistingDirectory:
     def test_rejects_empty(self):
         result = _validate_existing_directory("")
