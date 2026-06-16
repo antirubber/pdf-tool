@@ -7,6 +7,7 @@ from pdf_tool.core.page_selection import All, resolve
 from pdf_tool.widgets.file_input import prompt_input_file
 from pdf_tool.widgets.output_path import prompt_output_path
 from pdf_tool.widgets.page_selection import prompt_page_selection
+from pdf_tool.widgets.summary import closing_panel
 from pdf_tool.widgets.unlock import prompt_unlock
 
 _console = Console()
@@ -99,9 +100,10 @@ def run() -> None:
     output = prompt_output_path(
         ensure_unique(derive_output(input_path, "page_numbers")),
         hint="e.g. numbered.pdf",
+        recap=f"Number {len(options.pages)} page(s) of {input_path.name}",
     )
     if output is None:
         return
 
     backend.add_page_numbers(input_path, output, options, password=password)
-    _console.print(f"[green]Wrote {output}[/green]")
+    closing_panel(output, n_pages=n_pages)

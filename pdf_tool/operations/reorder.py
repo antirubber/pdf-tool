@@ -5,6 +5,7 @@ from pdf_tool.core.output_namer import derive_output, ensure_unique
 from pdf_tool.widgets.file_input import prompt_input_file
 from pdf_tool.widgets.output_path import prompt_output_path
 from pdf_tool.widgets.reorder import reorder_items
+from pdf_tool.widgets.summary import closing_panel
 from pdf_tool.widgets.unlock import prompt_unlock
 
 _console = Console()
@@ -32,9 +33,10 @@ def run() -> None:
     output = prompt_output_path(
         ensure_unique(derive_output(input_path, "reorder")),
         hint="e.g. reordered.pdf",
+        recap=f"Reorder {n_pages} page(s) of {input_path.name}",
     )
     if output is None:
         return
 
     backend.reorder_pages(input_path, output, order=order, password=password)
-    _console.print(f"[green]Wrote {output}[/green]")
+    closing_panel(output, n_pages=n_pages)

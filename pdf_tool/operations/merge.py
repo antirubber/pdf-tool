@@ -6,6 +6,7 @@ from pdf_tool.core.output_namer import derive_output, ensure_unique
 from pdf_tool.widgets.file_input import prompt_input_file
 from pdf_tool.widgets.output_path import prompt_output_path
 from pdf_tool.widgets.reorder import reorder_items
+from pdf_tool.widgets.summary import closing_panel
 
 _console = Console()
 
@@ -37,9 +38,10 @@ def run() -> None:
     output = prompt_output_path(
         ensure_unique(derive_output(final_order[0], "merge")),
         hint="e.g. combined.pdf",
+        recap=f"Merge {len(final_order)} PDFs",
     )
     if output is None:
         return
 
     PikepdfBackend().merge(final_order, output)
-    _console.print(f"[green]Wrote {output}[/green]")
+    closing_panel(output)

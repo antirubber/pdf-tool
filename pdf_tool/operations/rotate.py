@@ -11,6 +11,7 @@ from pdf_tool.widgets.batch import run_one_or_many
 from pdf_tool.widgets.file_input import prompt_input_file
 from pdf_tool.widgets.output_path import prompt_output_path
 from pdf_tool.widgets.page_selection import prompt_page_selection
+from pdf_tool.widgets.summary import closing_panel
 from pdf_tool.widgets.unlock import prompt_unlock
 
 _console = Console()
@@ -52,6 +53,7 @@ def _run_one() -> None:
     output = prompt_output_path(
         ensure_unique(derive_output(input_path, "rotate")),
         hint="e.g. rotated.pdf",
+        recap=f"Rotate {input_path.name} by {int(angle)}° ({len(pages)} page(s))",
     )
     if output is None:
         return
@@ -59,7 +61,7 @@ def _run_one() -> None:
     backend.rotate(
         input_path, output, pages=pages, degrees=int(angle), password=password
     )
-    _console.print(f"[green]Wrote {output}[/green]")
+    closing_panel(output, n_pages=n_pages)
 
 
 def _collect_batch_params() -> tuple[PageSelection, int] | None:

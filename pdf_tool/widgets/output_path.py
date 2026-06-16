@@ -1,8 +1,11 @@
 from pathlib import Path
 
 import questionary
+from rich.console import Console
 
 from pdf_tool.widgets.file_input import normalize_path
+
+_console = Console()
 
 
 def resolve_custom_output(base_dir: Path, raw: str) -> Path:
@@ -20,11 +23,14 @@ def prompt_output_dir(
     proposed: Path,
     *,
     hint: str = "",
+    recap: str = "",
 ) -> Path | None:
     """Confirm the auto-derived output directory, or let user type a custom one.
 
     Returns the final Path, or None if cancelled.
     """
+    if recap:
+        _console.print(f"[dim]{recap}[/dim]")
     if questionary.confirm(f"Will write to {proposed}/. OK?", default=True).ask():
         return proposed
 
@@ -41,11 +47,14 @@ def prompt_output_path(
     proposed: Path,
     *,
     hint: str = "",
+    recap: str = "",
 ) -> Path | None:
     """Confirm the auto-derived output, or let user type a custom one.
 
     Returns the final Path, or None if cancelled.
     """
+    if recap:
+        _console.print(f"[dim]{recap}[/dim]")
     if questionary.confirm(f"Will write to {proposed}. OK?", default=True).ask():
         return proposed
 

@@ -9,6 +9,7 @@ from pdf_tool.core.output_namer import ensure_unique
 from pdf_tool.widgets.batch import run_one_or_many
 from pdf_tool.widgets.file_input import prompt_input_file
 from pdf_tool.widgets.output_path import prompt_output_path
+from pdf_tool.widgets.summary import closing_panel
 
 _console = Console()
 
@@ -60,24 +61,26 @@ def _edit(backend: PikepdfBackend, input_path) -> None:
     output = prompt_output_path(
         ensure_unique(input_path.with_stem(f"{input_path.stem}-tagged")),
         hint="e.g. tagged.pdf",
+        recap=f"Edit metadata of {input_path.name}",
     )
     if output is None:
         return
 
     backend.set_metadata(input_path, output, fields=fields)
-    _console.print(f"[green]Wrote {output}[/green]")
+    closing_panel(output)
 
 
 def _strip(backend: PikepdfBackend, input_path) -> None:
     output = prompt_output_path(
         ensure_unique(input_path.with_stem(f"{input_path.stem}-sanitised")),
         hint="e.g. clean.pdf",
+        recap=f"Strip metadata from {input_path.name}",
     )
     if output is None:
         return
 
     backend.strip_metadata(input_path, output)
-    _console.print(f"[green]Wrote {output}[/green]")
+    closing_panel(output)
 
 
 def _run_one() -> None:

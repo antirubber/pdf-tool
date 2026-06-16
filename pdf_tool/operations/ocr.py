@@ -9,6 +9,7 @@ from pdf_tool.widgets.batch import run_one_or_many
 from pdf_tool.widgets.file_input import prompt_input_file
 from pdf_tool.widgets.output_path import prompt_output_path
 from pdf_tool.widgets.progress import spinner
+from pdf_tool.widgets.summary import closing_panel
 
 _console = Console()
 
@@ -51,13 +52,14 @@ def _run_one() -> None:
     output = prompt_output_path(
         ensure_unique(derive_output(input_path, "ocr")),
         hint="e.g. searchable.pdf",
+        recap=f"OCR {input_path.name} ({options.language})",
     )
     if output is None:
         return
 
     with spinner("Running OCR"):
         OcrmypdfBackend().add_text_layer(input_path, output, options)
-    _console.print(f"[green]Wrote {output}[/green]")
+    closing_panel(output)
 
 
 def _make_process(options: OcrOptions):

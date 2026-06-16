@@ -8,6 +8,7 @@ from pdf_tool.core.range_parser import RangeParseError, parse_range
 from pdf_tool.widgets.file_input import prompt_input_file
 from pdf_tool.widgets.output_path import prompt_output_dir, prompt_output_path
 from pdf_tool.widgets.page_selection import prompt_page_selection
+from pdf_tool.widgets.summary import closing_panel
 from pdf_tool.widgets.unlock import prompt_unlock
 
 _console = Console()
@@ -104,8 +105,9 @@ def run() -> None:
         output = prompt_output_path(
             ensure_unique(input_path.with_stem(f"{input_path.stem}-extracted")),
             hint="e.g. extracted.pdf",
+            recap=f"Extract {len(pages)} page(s) from {input_path.name}",
         )
         if output is None:
             return
         backend.extract_pages(input_path, output, pages=pages, password=password)
-        _console.print(f"[green]Wrote {output}[/green]")
+        closing_panel(output, n_pages=len(pages))

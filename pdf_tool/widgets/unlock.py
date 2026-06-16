@@ -4,6 +4,7 @@ import questionary
 from rich.console import Console
 
 from pdf_tool.backends.pikepdf_backend import PikepdfBackend
+from pdf_tool.widgets.summary import show_page_count
 
 _console = Console()
 
@@ -20,6 +21,7 @@ def prompt_unlock(
     info = backend.inspect(input_path)
     if not info.encrypted:
         assert info.n_pages is not None
+        show_page_count(info.n_pages)
         return info.n_pages, ""
 
     password = questionary.password(
@@ -31,4 +33,5 @@ def prompt_unlock(
     if info.n_pages is None:
         _console.print("[red]Wrong password.[/red]")
         return None
+    show_page_count(info.n_pages)
     return info.n_pages, password

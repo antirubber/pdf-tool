@@ -16,6 +16,7 @@ from pdf_tool.widgets.batch import (
 )
 from pdf_tool.widgets.file_input import prompt_input_file
 from pdf_tool.widgets.output_path import prompt_output_path
+from pdf_tool.widgets.summary import closing_panel
 
 _console = Console()
 
@@ -165,12 +166,13 @@ def _run_one() -> None:
     output = prompt_output_path(
         ensure_unique(derive_output(input_path, "encrypt")),
         hint="e.g. secrets/contract-locked.pdf",
+        recap=f"Encrypt {input_path.name} ({options.strength}-bit)",
     )
     if output is None:
         return
 
     PikepdfBackend().encrypt(input_path, output, options)
-    _console.print(f"[green]Wrote {output}[/green]")
+    closing_panel(output)
 
 
 def _run_batch() -> None:
