@@ -7,6 +7,7 @@ from pdf_tool.core.page_selection import All, resolve
 from pdf_tool.widgets.file_input import prompt_input_file
 from pdf_tool.widgets.output_path import prompt_output_path
 from pdf_tool.widgets.page_selection import prompt_page_selection
+from pdf_tool.widgets.unlock import prompt_unlock
 
 _console = Console()
 
@@ -17,13 +18,10 @@ def run() -> None:
         return
 
     backend = PikepdfBackend()
-    info = backend.inspect(input_path)
-    if info.n_pages is None:
-        _console.print(
-            "[red]Cannot watermark an encrypted PDF. Decrypt it first.[/red]"
-        )
+    unlocked = prompt_unlock(backend, input_path)
+    if unlocked is None:
         return
-    n_pages = info.n_pages
+    n_pages, password = unlocked
 
     text = questionary.text(
         "Watermark text:",
@@ -52,5 +50,7 @@ def run() -> None:
     if output is None:
         return
 
-    backend.watermark(input_path, output, WatermarkOptions(text=text, pages=pages))
+    backend.watermark(
+        input_path, output, WatermarkOptions(text=text, pages=pages), password=password
+    )
     _console.print(f"[green]Wrote {output}[/green]")

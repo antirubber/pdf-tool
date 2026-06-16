@@ -160,6 +160,17 @@ def test_inspect_encrypted_pdf_reports_encrypted_without_failing(sample_pdf, tmp
     assert info.n_pages is None  # cannot read page count without password
 
 
+def test_rotate_opens_encrypted_input_with_password(sample_pdf, tmp_path):
+    enc = PikepdfBackend().encrypt(
+        sample_pdf, tmp_path / "enc.pdf", EncryptOptions(password="pw")
+    )
+    out = PikepdfBackend().rotate(
+        enc, tmp_path / "rot.pdf", pages=[1], degrees=90, password="pw"
+    )
+    with pikepdf.open(out) as pdf:
+        assert int(pdf.pages[0].obj.get("/Rotate", 0)) == 90
+
+
 def test_rotate_applies_to_selected_pages(sample_pdf, tmp_path):
     out = tmp_path / "rot.pdf"
     PikepdfBackend().rotate(sample_pdf, out, pages=[1, 3], degrees=90)

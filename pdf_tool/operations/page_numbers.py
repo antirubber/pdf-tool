@@ -7,6 +7,7 @@ from pdf_tool.core.page_selection import All, resolve
 from pdf_tool.widgets.file_input import prompt_input_file
 from pdf_tool.widgets.output_path import prompt_output_path
 from pdf_tool.widgets.page_selection import prompt_page_selection
+from pdf_tool.widgets.unlock import prompt_unlock
 
 _console = Console()
 
@@ -82,18 +83,16 @@ def run() -> None:
         return
 
     backend = PikepdfBackend()
-    info = backend.inspect(input_path)
-    if info.n_pages is None:
-        _console.print(
-            "[red]Cannot number an encrypted PDF. Decrypt it first.[/red]"
-        )
+    unlocked = prompt_unlock(backend, input_path)
+    if unlocked is None:
         return
+    n_pages, password = unlocked
 
     advanced = questionary.confirm("Advanced options?", default=False).ask()
     if advanced is None:
         return
 
-    options = _collect_options(info.n_pages, advanced)
+    options = _collect_options(n_pages, advanced)
     if options is None:
         return
 
@@ -104,5 +103,5 @@ def run() -> None:
     if output is None:
         return
 
-    backend.add_page_numbers(input_path, output, options)
+    backend.add_page_numbers(input_path, output, options, password=password)
     _console.print(f"[green]Wrote {output}[/green]")

@@ -7,6 +7,7 @@ from pdf_tool.core.page_selection import resolve
 from pdf_tool.widgets.file_input import prompt_input_file
 from pdf_tool.widgets.output_path import prompt_output_path
 from pdf_tool.widgets.page_selection import prompt_page_selection
+from pdf_tool.widgets.unlock import prompt_unlock
 
 _console = Console()
 
@@ -17,15 +18,15 @@ def run() -> None:
         return
 
     backend = PikepdfBackend()
-    info = backend.inspect(input_path)
-    if info.n_pages is None:
-        _console.print("[red]Cannot rotate an encrypted PDF. Decrypt it first.[/red]")
+    unlocked = prompt_unlock(backend, input_path)
+    if unlocked is None:
         return
+    n_pages, password = unlocked
 
-    selection = prompt_page_selection(info.n_pages)
+    selection = prompt_page_selection(n_pages)
     if selection is None:
         return
-    pages = resolve(selection, n_pages=info.n_pages)
+    pages = resolve(selection, n_pages=n_pages)
 
     angle_choice = questionary.select(
         "Rotation?",
@@ -45,5 +46,7 @@ def run() -> None:
     if output is None:
         return
 
-    backend.rotate(input_path, output, pages=pages, degrees=int(angle_choice))
+    backend.rotate(
+        input_path, output, pages=pages, degrees=int(angle_choice), password=password
+    )
     _console.print(f"[green]Wrote {output}[/green]")

@@ -8,6 +8,7 @@ from pdf_tool.core.range_parser import RangeParseError, parse_range
 from pdf_tool.widgets.file_input import prompt_input_file
 from pdf_tool.widgets.output_path import prompt_output_dir, prompt_output_path
 from pdf_tool.widgets.page_selection import prompt_page_selection
+from pdf_tool.widgets.unlock import prompt_unlock
 
 _console = Console()
 
@@ -35,11 +36,10 @@ def run() -> None:
         return
 
     backend = PikepdfBackend()
-    info = backend.inspect(input_path)
-    if info.n_pages is None:
-        _console.print("[red]Cannot split an encrypted PDF. Decrypt it first.[/red]")
+    unlocked = prompt_unlock(backend, input_path)
+    if unlocked is None:
         return
-    n_pages = info.n_pages
+    n_pages, password = unlocked
 
     mode = questionary.select(
         "Split Mode?",
@@ -60,7 +60,7 @@ def run() -> None:
         )
         if out_dir is None:
             return
-        outputs = backend.split_every_page(input_path, out_dir)
+        outputs = backend.split_every_page(input_path, out_dir, password=password)
         _console.print(f"[green]Wrote {len(outputs)} files to {out_dir}[/green]")
     elif mode == "every_n":
         raw = questionary.text(
@@ -74,7 +74,9 @@ def run() -> None:
         )
         if out_dir is None:
             return
-        outputs = backend.split_every_n(input_path, out_dir, n=int(raw))
+        outputs = backend.split_every_n(
+            input_path, out_dir, n=int(raw), password=password
+        )
         _console.print(f"[green]Wrote {len(outputs)} files to {out_dir}[/green]")
     elif mode == "boundaries":
         raw = questionary.text(
@@ -91,7 +93,7 @@ def run() -> None:
         if out_dir is None:
             return
         outputs = backend.split_at_boundaries(
-            input_path, out_dir, boundaries=boundaries
+            input_path, out_dir, boundaries=boundaries, password=password
         )
         _console.print(f"[green]Wrote {len(outputs)} files to {out_dir}[/green]")
     else:  # extract
@@ -105,5 +107,5 @@ def run() -> None:
         )
         if output is None:
             return
-        backend.extract_pages(input_path, output, pages=pages)
+        backend.extract_pages(input_path, output, pages=pages, password=password)
         _console.print(f"[green]Wrote {output}[/green]")

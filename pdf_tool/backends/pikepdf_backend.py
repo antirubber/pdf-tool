@@ -273,18 +273,21 @@ class PikepdfBackend:
         *,
         pages: list[int],
         degrees: int,
+        password: str = "",
     ) -> Path:
-        with pikepdf.open(input_path) as pdf:
+        with pikepdf.open(input_path, password=password) as pdf:
             for page_num in pages:
                 pdf.pages[page_num - 1].rotate(degrees, relative=True)
             pdf.save(output_path)
         return output_path
 
     @_translates
-    def split_every_page(self, input_path: Path, output_dir: Path) -> list[Path]:
+    def split_every_page(
+        self, input_path: Path, output_dir: Path, password: str = ""
+    ) -> list[Path]:
         output_dir.mkdir(parents=True, exist_ok=True)
         outputs: list[Path] = []
-        with pikepdf.open(input_path) as src:
+        with pikepdf.open(input_path, password=password) as src:
             width = len(str(len(src.pages)))
             for i, page in enumerate(src.pages, start=1):
                 dst = pikepdf.new()
@@ -296,13 +299,13 @@ class PikepdfBackend:
 
     @_translates
     def split_every_n(
-        self, input_path: Path, output_dir: Path, *, n: int
+        self, input_path: Path, output_dir: Path, *, n: int, password: str = ""
     ) -> list[Path]:
         if n < 1:
             raise ValueError(f"split_every_n requires n >= 1 (got {n})")
         output_dir.mkdir(parents=True, exist_ok=True)
         outputs: list[Path] = []
-        with pikepdf.open(input_path) as src:
+        with pikepdf.open(input_path, password=password) as src:
             total = len(src.pages)
             num_chunks = (total + n - 1) // n
             width = len(str(num_chunks))
@@ -319,11 +322,16 @@ class PikepdfBackend:
 
     @_translates
     def split_at_boundaries(
-        self, input_path: Path, output_dir: Path, *, boundaries: list[int]
+        self,
+        input_path: Path,
+        output_dir: Path,
+        *,
+        boundaries: list[int],
+        password: str = "",
     ) -> list[Path]:
         output_dir.mkdir(parents=True, exist_ok=True)
         outputs: list[Path] = []
-        with pikepdf.open(input_path) as src:
+        with pikepdf.open(input_path, password=password) as src:
             total = len(src.pages)
             sorted_bounds = sorted(b for b in boundaries if 1 < b <= total)
             cut_points = [1, *sorted_bounds, total + 1]
@@ -344,9 +352,9 @@ class PikepdfBackend:
 
     @_translates
     def extract_pages(
-        self, input_path: Path, output_path: Path, *, pages: list[int]
+        self, input_path: Path, output_path: Path, *, pages: list[int], password: str = ""
     ) -> Path:
-        with pikepdf.open(input_path) as src:
+        with pikepdf.open(input_path, password=password) as src:
             dst = pikepdf.new()
             for page_num in pages:
                 dst.pages.append(src.pages[page_num - 1])
@@ -355,9 +363,9 @@ class PikepdfBackend:
 
     @_translates
     def reorder_pages(
-        self, input_path: Path, output_path: Path, *, order: list[int]
+        self, input_path: Path, output_path: Path, *, order: list[int], password: str = ""
     ) -> Path:
-        with pikepdf.open(input_path) as src:
+        with pikepdf.open(input_path, password=password) as src:
             dst = pikepdf.new()
             for page_num in order:
                 dst.pages.append(src.pages[page_num - 1])
@@ -366,10 +374,10 @@ class PikepdfBackend:
 
     @_translates
     def remove_pages(
-        self, input_path: Path, output_path: Path, *, pages: list[int]
+        self, input_path: Path, output_path: Path, *, pages: list[int], password: str = ""
     ) -> Path:
         remove = set(pages)
-        with pikepdf.open(input_path) as src:
+        with pikepdf.open(input_path, password=password) as src:
             keep = [
                 i for i in range(1, len(src.pages) + 1) if i not in remove
             ]
@@ -383,13 +391,17 @@ class PikepdfBackend:
 
     @_translates
     def watermark(
-        self, input_path: Path, output_path: Path, options: WatermarkOptions
+        self,
+        input_path: Path,
+        output_path: Path,
+        options: WatermarkOptions,
+        password: str = "",
     ) -> Path:
         from pikepdf import Matrix, Name, Page, Rectangle
         from pikepdf.canvas import Canvas, Color, Helvetica, Text
 
         target_pages = set(options.pages)
-        with pikepdf.open(input_path) as pdf:
+        with pikepdf.open(input_path, password=password) as pdf:
             for i, page in enumerate(pdf.pages, start=1):
                 if i not in target_pages:
                     continue
@@ -426,13 +438,17 @@ class PikepdfBackend:
 
     @_translates
     def add_page_numbers(
-        self, input_path: Path, output_path: Path, options: PageNumberOptions
+        self,
+        input_path: Path,
+        output_path: Path,
+        options: PageNumberOptions,
+        password: str = "",
     ) -> Path:
         from pikepdf import Matrix, Name, Page, Rectangle
         from pikepdf.canvas import Canvas, Color, Helvetica, Text
 
         target = set(options.pages)
-        with pikepdf.open(input_path) as pdf:
+        with pikepdf.open(input_path, password=password) as pdf:
             total = len(pdf.pages)
             stamped = 0
             for i, page in enumerate(pdf.pages, start=1):
@@ -523,10 +539,10 @@ class PikepdfBackend:
         return output_path
 
     @_translates
-    def inspect(self, input_path: Path) -> "PdfInfo":
+    def inspect(self, input_path: Path, password: str = "") -> "PdfInfo":
         file_size = input_path.stat().st_size
         try:
-            pdf = pikepdf.open(input_path)
+            pdf = pikepdf.open(input_path, password=password)
         except pikepdf.PasswordError:
             return PdfInfo(n_pages=None, encrypted=True, file_size=file_size)
         with pdf:

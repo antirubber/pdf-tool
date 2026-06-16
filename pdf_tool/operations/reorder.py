@@ -5,6 +5,7 @@ from pdf_tool.core.output_namer import derive_output, ensure_unique
 from pdf_tool.widgets.file_input import prompt_input_file
 from pdf_tool.widgets.output_path import prompt_output_path
 from pdf_tool.widgets.reorder import reorder_items
+from pdf_tool.widgets.unlock import prompt_unlock
 
 _console = Console()
 
@@ -15,15 +16,13 @@ def run() -> None:
         return
 
     backend = PikepdfBackend()
-    info = backend.inspect(input_path)
-    if info.n_pages is None:
-        _console.print(
-            "[red]Cannot reorder an encrypted PDF. Decrypt it first.[/red]"
-        )
+    unlocked = prompt_unlock(backend, input_path)
+    if unlocked is None:
         return
+    n_pages, password = unlocked
 
     order = reorder_items(
-        list(range(1, info.n_pages + 1)),
+        list(range(1, n_pages + 1)),
         label=lambda p: f"Page {p}",
         done_label="Looks good — write",
     )
@@ -37,5 +36,5 @@ def run() -> None:
     if output is None:
         return
 
-    backend.reorder_pages(input_path, output, order=order)
+    backend.reorder_pages(input_path, output, order=order, password=password)
     _console.print(f"[green]Wrote {output}[/green]")
