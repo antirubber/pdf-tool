@@ -76,3 +76,10 @@ def test_out_of_bounds_range_rejected():
 
 def test_range_at_exact_upper_bound_accepted():
     assert parse_range("1-10", n_pages=10) == list(range(1, 11))
+
+
+def test_huge_out_of_range_spec_rejected_without_materializing():
+    # Must be rejected on the bound check, never expanded into billions of ints.
+    with pytest.raises(RangeParseError) as exc_info:
+        parse_range("1-2000000000", n_pages=10)
+    assert "document has only 10" in str(exc_info.value)

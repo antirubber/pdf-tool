@@ -32,12 +32,19 @@ def parse_range(spec: str, n_pages: int) -> list[int]:
                 raise RangeParseError(
                     f"descending range {token!r} in {raw!r}: start must be <= end"
                 )
+            _check_upper_bound(hi, n_pages=n_pages, spec=raw)
             pages.update(range(lo, hi + 1))
         else:
-            pages.add(_parse_int(token, spec=raw))
-    result = sorted(pages)
-    if result[-1] > n_pages:
+            n = _parse_int(token, spec=raw)
+            _check_upper_bound(n, n_pages=n_pages, spec=raw)
+            pages.add(n)
+    return sorted(pages)
+
+
+def _check_upper_bound(page: int, *, n_pages: int, spec: str) -> None:
+    # Validate before expanding, so a spec like 1-2000000000 is rejected
+    # instantly instead of materializing billions of integers into a set.
+    if page > n_pages:
         raise RangeParseError(
-            f"range {raw!r} references page {result[-1]} but document has only {n_pages}"
+            f"range {spec!r} references page {page} but document has only {n_pages}"
         )
-    return result
